@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:logger/logger.dart';
 
 import '../../../../core/models/health_baseline.dart';
-import '../../../../core/models/health_target.dart';
 import '../../../../core/services/health_analyzer.dart';
 import '../../../../core/services/health_service.dart';
-import '../../../../core/shared_preference/shared_preference_keys.dart';
-import '../../../../core/shared_preference/shared_preference_manager.dart';
+import '../../../../core/theme/color_theme/app_colors.dart';
 import '../../../../routes/routes_constants.dart';
 
-/// Screen 2: The Magic Moment - Real health data reveal
+/// Analysis/Loading page - Shows step-by-step progress while fetching health data
 class OnboardingMagicPage extends StatefulWidget {
   const OnboardingMagicPage({super.key});
 
@@ -19,596 +17,332 @@ class OnboardingMagicPage extends StatefulWidget {
   State<OnboardingMagicPage> createState() => _OnboardingMagicPageState();
 }
 
-class _OnboardingMagicPageState extends State<OnboardingMagicPage> {
+class _OnboardingMagicPageState extends State<OnboardingMagicPage>
+    with TickerProviderStateMixin {
   final _logger = Logger();
 
-  bool _isLoading = true;
-  String _loadingStatus = "Let's see your puzzle...";
+  // Analysis steps
+  static const List<String> _steps = [
+    'Connecting to Health...',
+    'Fetching your last 30 days...',
+    'Processing your data...',
+    'Finding patterns...',
+    'Almost there...',
+  ];
+
+  int _currentStep = 0;
+  bool _isComplete = false;
+  String? _errorMessage;
   HealthBaseline? _baseline;
-  HealthTarget? _target;
-  String? _insightMessage;
-  bool _permissionDenied = false;
+
+  // Animation controllers
+  late AnimationController _textController;
+  late AnimationController _pulseController;
+  late Animation<double> _textOpacity;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
-    _fetchAndAnalyze();
+
+    // Text fade animation
+    _textController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _textOpacity = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _textController, curve: Curves.easeOut));
+
+    // Pulse animation for the dot
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _startAnalysis();
   }
 
-  Future<void> _fetchAndAnalyze() async {
-    try {
-      await _updateStatus("Let's see your puzzle...", 600);
-
-      // Request permission
-      await _updateStatus("Connecting to your health data...", 400);
-      final hasPermission = await HealthService.requestPermission();
-
-      if (!hasPermission) {
-        _handlePermissionDenied();
-        return;
-      }
-
-      // Fetch data with status updates
-      await _updateStatus("Reading your last 30 days...", 500);
-      final stepData = await HealthService.fetchStepData(days: 30);
-
-      if (stepData.isEmpty) {
-        _logger.w('No step data found, using default baseline');
-      }
-
-      // Calculate total for display
-      final totalSteps = stepData.fold<int>(0, (sum, data) => sum + data.steps);
-      final validDays = stepData.where((d) => d.steps > 0).length;
-
-      if (validDays > 0) {
-        await _updateStatus("Found $validDays days of activity...", 600);
-        await _updateStatus(
-          "You moved ${_formatSteps(totalSteps)} steps...",
-          700,
-        );
-      }
-
-      await _updateStatus("Analyzing patterns...", 500);
-
-      // Analyze baseline
-      final baseline = HealthAnalyzer.calculateBaseline(stepData);
-      final target = HealthAnalyzer.generateTarget(baseline);
-      final insight = HealthAnalyzer.generateInsight(baseline);
-
-      // Small delay for dramatic effect
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      setState(() {
-        _isLoading = false;
-        _baseline = baseline;
-        _target = target;
-        _insightMessage = insight;
-      });
-    } catch (e) {
-      _logger.e('Error fetching and analyzing health data: $e');
-      // Fall back to default baseline on error
-      _handleError();
-    }
+  @override
+  void dispose() {
+    _textController.dispose();
+    _pulseController.dispose();
+    super.dispose();
   }
 
-  Future<void> _updateStatus(String status, int delayMs) async {
+  Future<void> _startAnalysis() async {
+    await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
-    setState(() => _loadingStatus = status);
-    await Future.delayed(Duration(milliseconds: delayMs));
-  }
 
-  void _handlePermissionDenied() {
-    _logger.w('Health permission denied, showing fallback');
-    setState(() {
-      _permissionDenied = true;
-      _isLoading = false;
-    });
-  }
+    _textController.forward();
 
-  void _handleError() {
-    // Use default baseline if there's an error
-    final baseline = HealthAnalyzer.calculateBaseline([]);
-    final target = HealthAnalyzer.generateTarget(baseline);
-    final insight = "Let's start with a fresh baseline.";
+    try {
+      // Step 1: Connecting
+      await _advanceStep(minDuration: 800);
 
-    setState(() {
-      _isLoading = false;
+      // Step 2: Fetching data
+      await _advanceStep(minDuration: 500);
+      final healthData = await HealthService.fetchLastNDays(days: 30);
+      _logger.i('Fetched ${healthData.length} health data points');
+
+      if (!mounted) return;
+
+      // Step 3: Processing
+      await _advanceStep(minDuration: 600);
+      final uniqueData = HealthService.removeDuplicates(healthData);
+      _logger.i('After deduplication: ${uniqueData.length} points');
+
+      if (!mounted) return;
+
+      // Step 4: Finding patterns
+      await _advanceStep(minDuration: 800);
+      final baseline = HealthAnalyzer.analyzeHealthData(uniqueData, days: 30);
+      _logger.i('Baseline generated: ${baseline.avgSteps.round()} avg steps');
+
+      if (!mounted) return;
       _baseline = baseline;
-      _target = target;
-      _insightMessage = insight;
-    });
+
+      // Step 5: Almost there
+      await _advanceStep(minDuration: 600);
+
+      // Complete!
+      if (mounted) {
+        setState(() => _isComplete = true);
+        HapticFeedback.mediumImpact();
+
+        // Brief pause to show completion, then navigate
+        await Future.delayed(const Duration(milliseconds: 400));
+        if (mounted) {
+          _navigateToInsights();
+        }
+      }
+    } catch (e) {
+      _logger.e('Error during analysis: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Something went wrong. Please try again.';
+        });
+      }
+    }
   }
 
-  String _formatSteps(int steps) {
-    if (steps >= 1000000) {
-      return '${(steps / 1000000).toStringAsFixed(1)}M';
-    } else if (steps >= 1000) {
-      return '${(steps / 1000).toStringAsFixed(1)}K';
-    }
-    return steps.toString();
+  Future<void> _advanceStep({required int minDuration}) async {
+    if (!mounted) return;
+
+    // Fade out current text
+    await _textController.reverse();
+
+    if (!mounted) return;
+
+    // Update step
+    setState(() {
+      _currentStep = (_currentStep + 1).clamp(0, _steps.length - 1);
+    });
+
+    // Fade in new text
+    _textController.forward();
+
+    // Ensure minimum duration for each step
+    await Future.delayed(Duration(milliseconds: minDuration));
+  }
+
+  void _navigateToInsights() {
+    context.go(
+      RoutesConstants.onboardingInsights,
+      extra: _baseline ?? HealthBaseline.defaultBaseline(),
+    );
+  }
+
+  void _retry() {
+    setState(() {
+      _currentStep = 0;
+      _errorMessage = null;
+      _isComplete = false;
+    });
+    _startAnalysis();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_permissionDenied) {
-      return _buildPermissionDeniedState();
-    }
+    return Scaffold(
+      backgroundColor: AppColor.backgroundColor,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Spacer(flex: 2),
 
-    if (_isLoading) {
-      return _buildLoadingState();
-    }
+              // Main content
+              if (_errorMessage != null)
+                _buildErrorState()
+              else
+                _buildLoadingState(),
 
-    return _buildResultsState();
+              const Spacer(flex: 3),
+
+              // Progress indicator
+              if (_errorMessage == null) _buildProgressIndicator(),
+
+              const SizedBox(height: 48),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildLoadingState() {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 350),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0, 0.1),
-                          end: Offset.zero,
-                        ).animate(animation),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Text(
-                    _loadingStatus,
-                    key: ValueKey(_loadingStatus),
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      height: 1.3,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildResultsState() {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child:
-              Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 32),
-
-                      // Header
-                      Text(
-                        "Here's what we learned:",
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Baseline Card
-                      _buildBaselineCard(theme),
-
-                      const SizedBox(height: 20),
-
-                      // Insight Message
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          _insightMessage!,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            height: 1.4,
-                            fontStyle: FontStyle.italic,
-                            color: theme.colorScheme.onSurface.withOpacity(0.8),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 28),
-
-                      // Target Introduction
-                      Text(
-                        "So here's your next piece:",
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Target Card
-                      _buildTargetCard(theme),
-
-                      const SizedBox(height: 48),
-
-                      // Start Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: FilledButton(
-                          onPressed: _completeOnboarding,
-                          style: FilledButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: const Text(
-                            'Start tracking',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                  .animate()
-                  .fadeIn(duration: 700.ms, curve: Curves.easeOutCubic)
-                  .slideY(
-                    begin: 0.15,
-                    end: 0,
-                    duration: 700.ms,
-                    curve: Curves.easeOutCubic,
-                  ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBaselineCard(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withOpacity(0.5),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Your typical day",
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 20),
-          _buildStatRow(theme, "📊", "${_baseline!.avgSteps.round()} steps"),
-          const SizedBox(height: 12),
-          _buildStatRow(
-            theme,
-            "🚶",
-            "${_baseline!.avgActiveMinutes} mins moving",
-          ),
-          const SizedBox(height: 12),
-          _buildStatRow(theme, "📅", "${_baseline!.activeDays} days/week"),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTargetCard(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primaryContainer,
-            theme.colorScheme.primaryContainer.withOpacity(0.8),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.3),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("🎯", style: TextStyle(fontSize: 24)),
-              const SizedBox(width: 8),
-              Text(
-                "This Week",
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            "${_target!.targetSteps}",
-            style: theme.textTheme.displayLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: theme.colorScheme.primary,
-              fontSize: 56,
-              height: 1.0,
-              letterSpacing: -2,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "steps per day",
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.onPrimaryContainer.withOpacity(0.8),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              "Just ${_target!.incrementSteps} more than you already do",
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatRow(ThemeData theme, String emoji, String text) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Center(
-            child: Text(emoji, style: const TextStyle(fontSize: 20)),
-          ),
+        // Animated pulsing dot
+        AnimatedBuilder(
+          animation: _pulseAnimation,
+          builder: (context, child) {
+            return Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: AppColor.accentTeal.withOpacity(_pulseAnimation.value),
+                shape: BoxShape.circle,
+              ),
+            );
+          },
         ),
-        const SizedBox(width: 16),
-        Text(
-          text,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w500,
-            letterSpacing: -0.2,
+
+        const SizedBox(height: 24),
+
+        // Step text with fade animation
+        AnimatedBuilder(
+          animation: _textOpacity,
+          builder: (context, child) {
+            return Opacity(
+              opacity: _textOpacity.value,
+              child: Text(
+                _isComplete ? 'Done.' : _steps[_currentStep],
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w600,
+                  color: _isComplete
+                      ? AppColor.accentTeal
+                      : AppColor.primaryTextColor,
+                  letterSpacing: -0.5,
+                  height: 1.2,
+                ),
+              ),
+            );
+          },
+        ),
+
+        const SizedBox(height: 16),
+
+        // Subtitle
+        AnimatedOpacity(
+          opacity: _isComplete ? 1.0 : 0.7,
+          duration: const Duration(milliseconds: 300),
+          child: Text(
+            _isComplete
+                ? 'Let\'s see what we found.'
+                : 'This will only take a moment.',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w400,
+              color: AppColor.secondaryColor,
+              height: 1.5,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildPermissionDeniedState() {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.health_and_safety_outlined,
-                        size: 56,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      "No problem",
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      "We can work with estimates.\nLet's start with a simple baseline:",
-                      style: theme.textTheme.bodyLarge?.copyWith(height: 1.5),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 40),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 28,
-                        vertical: 32,
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            theme.colorScheme.primaryContainer,
-                            theme.colorScheme.primaryContainer.withOpacity(0.8),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: theme.colorScheme.primary.withOpacity(0.3),
-                          width: 2,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text("🎯", style: TextStyle(fontSize: 24)),
-                              const SizedBox(width: 8),
-                              Text(
-                                "This Week",
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: -0.3,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            "3,000",
-                            style: theme.textTheme.displayLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: theme.colorScheme.primary,
-                              fontSize: 56,
-                              height: 1.0,
-                              letterSpacing: -2,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "steps per day",
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.onPrimaryContainer
-                                  .withOpacity(0.8),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surface.withOpacity(0.6),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              "Most people do 2-3K just living.\nThis adds one short walk.",
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w500,
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: FilledButton(
-                      onPressed: _completeOnboarding,
-                      style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: const Text(
-                        'Start',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _permissionDenied = false;
-                        _isLoading = true;
-                      });
-                      _fetchAndAnalyze();
-                    },
-                    child: const Text('Try again with health data'),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ],
+  Widget _buildErrorState() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.error_outline_rounded,
+          size: 48,
+          color: AppColor.errorColor.withOpacity(0.8),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'Oops.',
+          style: const TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w600,
+            color: AppColor.primaryTextColor,
+            letterSpacing: -0.5,
           ),
         ),
-      ),
+        const SizedBox(height: 12),
+        Text(
+          _errorMessage!,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w400,
+            color: AppColor.secondaryColor,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 32),
+        TextButton(
+          onPressed: _retry,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColor.accentTeal,
+            padding: EdgeInsets.zero,
+          ),
+          child: const Text(
+            'Try again',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     );
   }
 
-  Future<void> _completeOnboarding() async {
-    await SharedPreferenceManager.setBool(
-      SharedPreferenceKeys.onboardingCompleted,
-      true,
-    );
-    await SharedPreferenceManager.setBool(
-      SharedPreferenceKeys.hasSeenLogin,
-      true,
-    );
+  Widget _buildProgressIndicator() {
+    return Row(
+      children: List.generate(_steps.length, (index) {
+        final isActive = index <= _currentStep;
+        final isCurrent = index == _currentStep && !_isComplete;
 
-    if (!mounted) return;
-    context.go('${RoutesConstants.dashboard}/${RoutesConstants.home}');
+        return Expanded(
+          child: Container(
+            height: 3,
+            margin: EdgeInsets.only(right: index < _steps.length - 1 ? 6 : 0),
+            decoration: BoxDecoration(
+              color: isActive
+                  ? (_isComplete ? AppColor.accentTeal : AppColor.primaryColor)
+                  : AppColor.borderColor,
+              borderRadius: BorderRadius.circular(2),
+            ),
+            child: isCurrent
+                ? AnimatedBuilder(
+                    animation: _pulseAnimation,
+                    builder: (context, child) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: AppColor.primaryColor.withOpacity(
+                            _pulseAnimation.value,
+                          ),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      );
+                    },
+                  )
+                : null,
+          ),
+        );
+      }),
+    );
   }
 }

@@ -1,0 +1,61 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /Name /F1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /Name /F2 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Length 2809 >>
+stream
+BT /F2 18 Tf 1 0 0 1 50 742 Tm (Puzzle Health - App Summary) Tj ET
+BT /F2 12 Tf 1 0 0 1 50 716 Tm (What It Is) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 702 Tm (A Flutter-based mobile app that introduces users to a health tracking experience through a two-screen onboarding flow.) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 690 Tm (It visualizes a puzzle metaphor and then analyzes real health data to personalize a starting target.) Tj ET
+BT /F2 12 Tf 1 0 0 1 50 670 Tm (Who It's For) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 656 Tm (Primary persona: a new user who wants a quick, guided setup for tracking activity \(steps, distance, calories\).) Tj ET
+BT /F2 12 Tf 1 0 0 1 50 636 Tm (What It Does) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 622 Tm (- Runs a two-screen onboarding flow \(Reveal then Magic Moment\).) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 610 Tm (- Animates puzzle pieces with timed storytelling and haptic feedback.) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 598 Tm (- Requests HealthKit or Health Connect permissions.) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 586 Tm (- Fetches recent activity data \(last 30 days\) and computes a baseline.) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 574 Tm (- Generates a personalized target from the baseline.) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 562 Tm (- Shows an insight message based on the user pattern.) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 550 Tm (- Completes onboarding and navigates to the home screen.) Tj ET
+BT /F2 12 Tf 1 0 0 1 50 530 Tm (How It Works \(Repo Evidence\)) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 516 Tm (- UI: Flutter screens in lib/features/onboarding/presentation/pages \(onboarding_reveal_page.dart, onboarding_magic_page.dart\).) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 504 Tm (- Animation widget: lib/features/onboarding/presentation/widgets/animated_puzzle_pieces.dart.) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 492 Tm (- Models: lib/core/models/health_baseline.dart and lib/core/models/health_target.dart.) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 480 Tm (- Services: lib/core/services/health_service.dart \(data access\) and health_analyzer.dart \(baseline and target logic\).) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 468 Tm (- Routing: lib/routes/routes.dart and lib/routes/routes_constants.dart wire the onboarding flow.) Tj ET
+BT /F2 12 Tf 1 0 0 1 50 448 Tm (How To Run \(Minimal\)) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 434 Tm (- Install dependencies: flutter pub get) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 422 Tm (- Run the app: flutter run) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 410 Tm (- iOS only: enable HealthKit capability in ios/Runner.xcworkspace \(Signing and Capabilities\).) Tj ET
+BT /F1 10 Tf 1 0 0 1 50 398 Tm (- Android only: ensure compileSdkVersion >= 33 and minSdkVersion >= 26 \(android/app/build.gradle\).) Tj ET
+BT /F1 8 Tf 0.5 0.5 0.5 rg 1 0 0 1 50 38 Tm (Notes: Health data may be unavailable in simulators; use a real device or add test data. \(From SETUP_GUIDE.md\)) Tj ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 5 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+6 0 obj
+<< /Type /Catalog /Pages 5 0 R >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000089 00000 n 
+0000000174 00000 n 
+0000003035 00000 n 
+0000003171 00000 n 
+0000003228 00000 n 
+trailer
+<< /Size 7 /Root 6 0 R >>
+startxref
+3277
+%%EOF

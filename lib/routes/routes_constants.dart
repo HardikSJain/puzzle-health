@@ -1,10 +1,11 @@
 class RoutesConstants {
   RoutesConstants._();
 
-  // ---- Onboarding Flow (3 screens) -----
+  // ---- Onboarding Flow (4 screens) -----
   static const onboarding = '/onboarding';
   static const onboardingHealthPermission = '/onboarding/health-permission';
   static const onboardingMagic = '/onboarding/magic';
+  static const onboardingInsights = '/onboarding/insights';
 
   // ---- Auth -----
   static const login = '/login';
@@ -14,6 +15,6 @@ class RoutesConstants {
 
   // ---- Dashboard Tabs (nested under dashboard) -----
   static const home = 'home';
-  static const profile = 'profile';
-  static const settings = 'settings';
+  static const history = 'history';
+  static const data = 'data';
 }

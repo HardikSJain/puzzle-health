@@ -1,14 +1,17 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:health/health.dart';
+import 'package:logger/logger.dart';
 
 import '../../../../core/services/health_service.dart';
+import '../../../../core/theme/color_theme/app_colors.dart';
+import '../../../../core/widgets/app_button.dart';
 import '../../../../routes/routes_constants.dart';
 
-/// Screen: Health Permission Request
-/// Shows Apple Health on iOS, Google Fit on Android
+/// Screen: Health Permission Request - Clean minimal design
 class OnboardingHealthPermissionPage extends StatefulWidget {
   const OnboardingHealthPermissionPage({super.key});
 
@@ -18,180 +21,154 @@ class OnboardingHealthPermissionPage extends StatefulWidget {
 }
 
 class _OnboardingHealthPermissionPageState
-    extends State<OnboardingHealthPermissionPage> {
+    extends State<OnboardingHealthPermissionPage>
+    with SingleTickerProviderStateMixin {
   bool _isRequesting = false;
 
+  late AnimationController _controller;
+  late Animation<double> _contentFade;
+  late Animation<double> _buttonFade;
+
+  final _logger = Logger();
+
   bool get _isIOS => Platform.isIOS;
+  String get _platformName => _isIOS ? 'Apple Health' : 'Health Connect';
 
-  String get _platformName => _isIOS ? 'Apple Health' : 'Google Fit';
+  @override
+  void initState() {
+    super.initState();
 
-  IconData get _platformIcon =>
-      _isIOS ? Icons.favorite_rounded : Icons.fitness_center_rounded;
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _contentFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _buttonFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.4, 0.8, curve: Curves.easeOut),
+      ),
+    );
+
+    _start();
+  }
+
+  Future<void> _start() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
     return Scaffold(
+      backgroundColor: AppColor.backgroundColor,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            children: [
-              const Spacer(flex: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Spacer(flex: 2),
 
-              // Icon
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  color: colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                child: Icon(
-                  _platformIcon,
-                  size: 44,
-                  color: colorScheme.primary,
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Title
-              Text(
-                'Connect $_platformName',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
-                ),
-                textAlign: TextAlign.center,
-              ).animate().fadeIn(duration: 400.ms),
-
-              const SizedBox(height: 16),
-
-              // Body
-              Text(
-                'We need access to your activity data to understand your baseline and set the right goal for you.',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
-
-              const SizedBox(height: 40),
-
-              // What we access
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(
-                    alpha: 0.5,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    _buildAccessItem(
-                      context,
-                      icon: Icons.directions_walk_rounded,
-                      label: 'Steps',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildAccessItem(
-                      context,
-                      icon: Icons.straighten_rounded,
-                      label: 'Distance',
-                    ),
-                    const SizedBox(height: 12),
-                    _buildAccessItem(
-                      context,
-                      icon: Icons.local_fire_department_rounded,
-                      label: 'Active calories',
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(delay: 200.ms, duration: 400.ms),
-
-              const Spacer(flex: 3),
-
-              // CTA Button
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton(
-                  onPressed: _isRequesting ? null : _requestPermission,
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  // Title
+                  Opacity(
+                    opacity: _contentFade.value,
+                    child: Text(
+                      'Connect\n$_platformName',
+                      style: const TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.w700,
+                        color: AppColor.primaryTextColor,
+                        letterSpacing: -1,
+                        height: 1.1,
+                      ),
                     ),
                   ),
-                  child: _isRequesting
-                      ? SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: colorScheme.onPrimary,
-                          ),
-                        )
-                      : Text(
-                          'Connect $_platformName',
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.3,
-                          ),
+
+                  const SizedBox(height: 24),
+
+                  // Simple explanation
+                  Opacity(
+                    opacity: _contentFade.value,
+                    child: Text(
+                      'To find the right goal, we need to see how you move.',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
+                        color: AppColor.secondaryColor,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // What we read - simple text list
+                  Opacity(
+                    opacity: _contentFade.value,
+                    child: Text(
+                      'Steps · Heart Rate · Sleep · Weight & more',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColor.secondaryColor.withValues(alpha: 0.7),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+
+                  const Spacer(flex: 3),
+
+                  // Button
+                  Opacity(
+                    opacity: _buttonFade.value,
+                    child: AppButton(
+                      text: 'Allow access',
+                      onPressed: _requestPermission,
+                      isLoading: _isRequesting,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Reassurance - minimal
+                  Opacity(
+                    opacity: _buttonFade.value,
+                    child: Center(
+                      child: Text(
+                        'Read-only. Never shared.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColor.secondaryColor.withValues(alpha: 0.6),
                         ),
-                ),
-              ).animate().fadeIn(delay: 300.ms, duration: 400.ms),
+                      ),
+                    ),
+                  ),
 
-              const SizedBox(height: 16),
-
-              // Reassurance
-              Text(
-                'We only read activity data.\nWe never share or sell your health information.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ).animate().fadeIn(delay: 400.ms, duration: 400.ms),
-
-              const SizedBox(height: 32),
-            ],
+                  const SizedBox(height: 48),
+                ],
+              );
+            },
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildAccessItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Row(
-      children: [
-        Icon(icon, size: 22, color: colorScheme.primary),
-        const SizedBox(width: 12),
-        Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const Spacer(),
-        Icon(
-          Icons.check_circle_rounded,
-          size: 20,
-          color: colorScheme.primary.withValues(alpha: 0.7),
-        ),
-      ],
     );
   }
 
@@ -199,18 +176,50 @@ class _OnboardingHealthPermissionPageState
     setState(() => _isRequesting = true);
 
     try {
-      final granted = await HealthService.requestPermission();
+      // Check if Health Connect is available on Android
+      if (!_isIOS) {
+        final status = await HealthService.getHealthConnectSdkStatus();
+        _logger.i('Health Connect SDK status: $status');
+
+        if (status == HealthConnectSdkStatus.sdkUnavailable) {
+          if (!mounted) return;
+          setState(() => _isRequesting = false);
+          _showDeviceNotSupportedDialog();
+          return;
+        } else if (status ==
+            HealthConnectSdkStatus.sdkUnavailableProviderUpdateRequired) {
+          if (!mounted) return;
+          setState(() => _isRequesting = false);
+          _showHealthConnectNotInstalledDialog();
+          return;
+        }
+      }
+
+      // Request permissions for all health types using the new HealthService
+      final granted = await HealthService.requestAllPermissions();
+      _logger.i('Permissions granted: $granted');
 
       if (!mounted) return;
 
       if (granted) {
-        // Permission granted, proceed to magic page
-        context.go(RoutesConstants.onboardingMagic);
+        // Fetch a quick sample to verify data access
+        final now = DateTime.now();
+        final healthData = await HealthService.fetchData(
+          types: [HealthDataType.STEPS],
+          startTime: now.subtract(const Duration(days: 1)),
+          endTime: now,
+        );
+        _logger.i('Sample health data fetched: ${healthData.length} points');
+
+        HapticFeedback.mediumImpact();
+        if (mounted) {
+          context.go(RoutesConstants.onboardingMagic);
+        }
       } else {
-        // Permission denied, show dialog but still allow to proceed
         _showPermissionDeniedDialog();
       }
     } catch (e) {
+      _logger.e('Error requesting permissions: $e');
       if (!mounted) return;
       _showPermissionDeniedDialog();
     } finally {
@@ -221,29 +230,100 @@ class _OnboardingHealthPermissionPageState
   }
 
   void _showPermissionDeniedDialog() {
-    final theme = Theme.of(context);
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Permission Required'),
+        backgroundColor: AppColor.cardColor,
+        title: const Text(
+          'Permission needed',
+          style: TextStyle(color: AppColor.primaryTextColor),
+        ),
         content: Text(
-          'We need access to $_platformName to set your personalized goal. You can enable it later in Settings.',
+          _isIOS
+              ? 'We need $_platformName access to set your goal. You can enable it later in Settings.'
+              : 'Please open Health Connect and grant permissions to Puzzle Health manually.',
+          style: const TextStyle(color: AppColor.secondaryColor, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
+              context.go(RoutesConstants.onboardingMagic);
             },
-            child: const Text('Try Again'),
+            child: const Text('Skip for now'),
           ),
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // Allow user to continue anyway (will use dummy data)
+              if (_isIOS) {
+                _requestPermission(); // Try again on iOS
+              } else {
+                HealthService.installHealthConnect(); // Open Health Connect on Android
+              }
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppColor.accentTeal),
+            child: Text(_isIOS ? 'Try again' : 'Open Health Connect'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHealthConnectNotInstalledDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColor.cardColor,
+        title: const Text(
+          'Health Connect required',
+          style: TextStyle(color: AppColor.primaryTextColor),
+        ),
+        content: const Text(
+          'Please install "Health Connect" from the Play Store to continue.\n\nAfter installing, open Health Connect once to complete setup, then return here.',
+          style: TextStyle(color: AppColor.secondaryColor, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
               context.go(RoutesConstants.onboardingMagic);
             },
-            child: const Text('Continue Anyway'),
+            child: const Text('Skip for now'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              HealthService.installHealthConnect();
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppColor.accentTeal),
+            child: const Text('Install'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeviceNotSupportedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColor.cardColor,
+        title: const Text(
+          'Device not supported',
+          style: TextStyle(color: AppColor.primaryTextColor),
+        ),
+        content: const Text(
+          'Your device doesn\'t support Health Connect. You can still use the app with sample data for now.',
+          style: TextStyle(color: AppColor.secondaryColor, height: 1.5),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              context.go(RoutesConstants.onboardingMagic);
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppColor.accentTeal),
+            child: const Text('Continue'),
           ),
         ],
       ),

@@ -6,11 +6,13 @@ import '../core/shared_preference/shared_preference_manager.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/dashboard/presentation/widgets/dashboard_shell.dart';
 import '../features/home/presentation/pages/home_page.dart';
+import '../core/models/health_baseline.dart';
 import '../features/onboarding/presentation/pages/onboarding_health_permission_page.dart';
+import '../features/onboarding/presentation/pages/onboarding_insights_page.dart';
 import '../features/onboarding/presentation/pages/onboarding_magic_page.dart';
 import '../features/onboarding/presentation/pages/onboarding_reveal_page.dart';
-import '../features/profile/presentation/pages/profile_page.dart';
-import '../features/settings/presentation/pages/settings_page.dart';
+import '../features/history/presentation/pages/history_page.dart';
+import '../features/data/presentation/pages/data_page.dart';
 import 'routes_constants.dart';
 
 // ============================================================================
@@ -47,12 +49,14 @@ class AppRouter {
       SharedPreferenceManager.getBool(SharedPreferenceKeys.isLoggedIn) ?? false;
 
   // ---- State Setters ----
-  /// Mark onboarding as completed
+  /// Mark onboarding as completed and skip login
   static Future<void> completeOnboarding() async {
     await SharedPreferenceManager.setBool(
       SharedPreferenceKeys.onboardingCompleted,
       true,
     );
+    // Skip login screen - user can use app without authentication
+    await markLoginSeen();
   }
 
   /// Mark login as seen (either logged in or skipped)
@@ -147,7 +151,8 @@ class AppRouter {
 
   /// Route definitions
   static final List<RouteBase> _routes = [
-    // ---- Onboarding Flow (3 screens) ----
+    // ---- Onboarding Flow (4 screens) ----
+    // Uses normal builder = has transitions (hierarchical navigation)
     GoRoute(
       path: RoutesConstants.onboarding,
       builder: (context, state) => const OnboardingRevealPage(),
@@ -160,28 +165,52 @@ class AppRouter {
       path: RoutesConstants.onboardingMagic,
       builder: (context, state) => const OnboardingMagicPage(),
     ),
+    GoRoute(
+      path: RoutesConstants.onboardingInsights,
+      builder: (context, state) => OnboardingInsightsPage(
+        baseline:
+            state.extra as HealthBaseline? ?? HealthBaseline.defaultBaseline(),
+      ),
+    ),
 
     // ---- Login ----
+    // Uses normal builder = has transitions (true navigation event)
     GoRoute(
       path: RoutesConstants.login,
       builder: (context, state) => const LoginPage(),
     ),
 
     // ---- Dashboard Shell (with bottom navigation) ----
+    // NAVIGATION PHILOSOPHY:
+    // - Bottom tabs = NO transitions (instant switching, views not places)
+    // - Drill-in navigation = KEEP transitions (hierarchical, true navigation)
+    // - ShellRoute preserves state per tab (scroll position, loaded data)
+    // - Tabs do NOT stack in back button history
+    // - Use NoTransitionPage for peer views (tabs)
+    // - Use normal builder for hierarchical navigation (details, settings)
     ShellRoute(
       builder: (context, state, child) => DashboardShell(child: child),
       routes: [
         GoRoute(
           path: '${RoutesConstants.dashboard}/${RoutesConstants.home}',
-          builder: (context, state) => const HomePage(),
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: const HomePage(),
+          ),
         ),
         GoRoute(
-          path: '${RoutesConstants.dashboard}/${RoutesConstants.profile}',
-          builder: (context, state) => const ProfilePage(),
+          path: '${RoutesConstants.dashboard}/${RoutesConstants.history}',
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: const HistoryPage(),
+          ),
         ),
         GoRoute(
-          path: '${RoutesConstants.dashboard}/${RoutesConstants.settings}',
-          builder: (context, state) => const SettingsPage(),
+          path: '${RoutesConstants.dashboard}/${RoutesConstants.data}',
+          pageBuilder: (context, state) => NoTransitionPage(
+            key: state.pageKey,
+            child: const DataPage(),
+          ),
         ),
       ],
     ),
