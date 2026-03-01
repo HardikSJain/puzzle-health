@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../exceptions/exception_logger.dart';
 import '../models/current_focus.dart';
 import '../models/health_baseline.dart';
 import '../models/user_fitness_profile.dart';
@@ -21,7 +22,16 @@ class LocalStoreService {
       SharedPreferenceKeys.latestBaseline,
     );
     if (raw == null || raw.isEmpty) return null;
-    return HealthBaseline.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+
+    try {
+      return HealthBaseline.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (exception, stackTrace) {
+      ExceptionLogger.track(
+        Exception('Failed to decode latestBaseline. raw=$raw | error=$exception'),
+        stackTrace,
+      );
+      return null;
+    }
   }
 
   static Future<void> saveActiveFocus(CurrentFocus focus) async {
@@ -43,7 +53,20 @@ class LocalStoreService {
       SharedPreferenceKeys.latestFitnessProfile,
     );
     if (raw == null || raw.isEmpty) return null;
-    return UserFitnessProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+
+    try {
+      return UserFitnessProfile.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
+    } catch (exception, stackTrace) {
+      ExceptionLogger.track(
+        Exception(
+          'Failed to decode latestFitnessProfile. raw=$raw | error=$exception',
+        ),
+        stackTrace,
+      );
+      return null;
+    }
   }
 
   static CurrentFocus? getActiveFocus() {
@@ -51,7 +74,18 @@ class LocalStoreService {
       SharedPreferenceKeys.activeWeeklyFocus,
     );
     if (raw == null || raw.isEmpty) return null;
-    return CurrentFocus.decode(raw);
+
+    try {
+      return CurrentFocus.decode(raw);
+    } catch (exception, stackTrace) {
+      ExceptionLogger.track(
+        Exception(
+          'Failed to decode activeWeeklyFocus. raw=$raw | error=$exception',
+        ),
+        stackTrace,
+      );
+      return null;
+    }
   }
 
   static Future<void> archiveFocus(CurrentFocus focus) async {
@@ -73,10 +107,21 @@ class LocalStoreService {
       SharedPreferenceKeys.weeklyFocusHistory,
     );
     if (raw == null || raw.isEmpty) return [];
-    final list = jsonDecode(raw) as List<dynamic>;
-    return list
-        .map((e) => CurrentFocus.fromJson(e as Map<String, dynamic>))
-        .toList();
+
+    try {
+      final list = jsonDecode(raw) as List<dynamic>;
+      return list
+          .map((e) => CurrentFocus.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (exception, stackTrace) {
+      ExceptionLogger.track(
+        Exception(
+          'Failed to decode weeklyFocusHistory. raw=$raw | error=$exception',
+        ),
+        stackTrace,
+      );
+      return [];
+    }
   }
 
   static Future<void> saveWeeklyRating(bool isGoodFit) async {
