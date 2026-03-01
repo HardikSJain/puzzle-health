@@ -198,7 +198,7 @@ class _BottomNavigationButton extends StatelessWidget {
                 SizedBox(
                   height: 26,
                   child: AnimatedSwitcher(
-                    duration: DashboardShell.navAnimDuration
+                    duration: DashboardShell.navAnimDuration,
                     switchInCurve: Curves.easeOut,
                     switchOutCurve: Curves.easeIn,
                     transitionBuilder: (child, animation) {

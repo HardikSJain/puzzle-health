@@ -7,7 +7,7 @@ import '../../../../core/services/local_store_service.dart';
 import '../../../../core/services/progress_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
 import '../../../../core/widgets/glass_surface.dart';
-import '../../../dashboard/presentation/widgets/dashboard_shell.dart;
+import '../../../dashboard/presentation/widgets/dashboard_shell.dart';
 
 /// Data Page - Read-only rolling baselines
 /// Confidence repair when users doubt the system
@@ -62,58 +62,64 @@ class _DataPageState extends State<DataPage> {
       backgroundColor: AppColor.backgroundColor,
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _loadTrend,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            padding: const EdgeInsets.fromLTRB(28, 32, 28, DashboardShell.bottomInsetForContent),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Signals',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    color: AppColor.primaryTextColor,
-                    height: 1.2,
-                    letterSpacing: -0.6,
-                  ),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          padding: const EdgeInsets.fromLTRB(
+            28,
+            32,
+            28,
+            DashboardShell.bottomInsetForContent,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Signals',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  color: AppColor.primaryTextColor,
+                  height: 1.2,
+                  letterSpacing: -0.6,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'How your goal is chosen',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    color: AppColor.secondaryColor.withValues(alpha: 0.6),
-                    letterSpacing: 0.1,
-                  ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'How your goal is chosen',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                  color: AppColor.secondaryColor.withValues(alpha: 0.6),
+                  letterSpacing: 0.1,
                 ),
-                const SizedBox(height: 32),
-                _buildBaselineCard(
-                  'Baseline (30 days)',
-                  baseline != null
-                      ? '${baseline.avgSteps.round()} steps/day'
-                      : 'No baseline yet',
-                  'Average daily steps',
-                ),
-                const SizedBox(height: 16),
-                _buildBaselineCard(
-                  'Current state',
-                  focus != null ? focus.fitnessState.label : _patternLabel(baseline?.activityPattern),
-                  focus != null ? _shortReason(focus.reason) : 'No active focus yet.',
-                ),
-                const SizedBox(height: 16),
-                _buildPathwayCard(focus),
-                const SizedBox(height: 16),
-                _buildLastRunCard(profile),
-                const SizedBox(height: 16),
-                _buildTrendCard(),
-              ],
-            ),
+              ),
+              const SizedBox(height: 32),
+              _buildBaselineCard(
+                'Baseline (30 days)',
+                baseline != null
+                    ? '${baseline.avgSteps.round()} steps/day'
+                    : 'No baseline yet',
+                'Average daily steps',
+              ),
+              const SizedBox(height: 16),
+              _buildBaselineCard(
+                'Current state',
+                focus != null
+                    ? focus.fitnessState.label
+                    : _patternLabel(baseline?.activityPattern),
+                focus != null
+                    ? _shortReason(focus.reason)
+                    : 'No active focus yet.',
+              ),
+              const SizedBox(height: 16),
+              _buildPathwayCard(focus),
+              const SizedBox(height: 16),
+              _buildLastRunCard(profile),
+              const SizedBox(height: 16),
+              _buildTrendCard(),
+            ],
           ),
         ),
       ),
@@ -190,10 +196,7 @@ class _DataPageState extends State<DataPage> {
           else ...[
             _pathwayLine('When', _formatDate(lastRun.start)),
             const SizedBox(height: 6),
-            _pathwayLine(
-              'Duration',
-              '${lastRun.durationMinutes.round()} min',
-            ),
+            _pathwayLine('Duration', '${lastRun.durationMinutes.round()} min'),
             if (lastRun.distanceMeters != null) ...[
               const SizedBox(height: 6),
               _pathwayLine(
@@ -203,10 +206,7 @@ class _DataPageState extends State<DataPage> {
             ],
             if (lastRun.paceMinPerKm != null) ...[
               const SizedBox(height: 6),
-              _pathwayLine(
-                'Pace',
-                _formatPace(lastRun.paceMinPerKm!),
-              ),
+              _pathwayLine('Pace', _formatPace(lastRun.paceMinPerKm!)),
             ],
           ],
         ],
@@ -215,7 +215,9 @@ class _DataPageState extends State<DataPage> {
   }
 
   Widget _buildTrendCard() {
-    final latest = _adherence.isNotEmpty ? (_adherence.last * 100).round() : null;
+    final latest = _adherence.isNotEmpty
+        ? (_adherence.last * 100).round()
+        : null;
 
     return GlassSurface(
       radius: 12,
@@ -235,7 +237,10 @@ class _DataPageState extends State<DataPage> {
           ),
           const SizedBox(height: 10),
           if (_loadingTrend)
-            const SizedBox(height: 42, child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
+            const SizedBox(
+              height: 42,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
           else if (_adherence.isEmpty)
             Text(
               'Not enough weekly data yet.',
