@@ -108,7 +108,7 @@ class _OnboardingHealthPermissionPageState
                   Opacity(
                     opacity: _contentFade.value,
                     child: Text(
-                      'To find the right goal, we need to see how you move.',
+                      'To set your first goal, we need your recent health data.',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w400,
@@ -153,7 +153,7 @@ class _OnboardingHealthPermissionPageState
                     opacity: _buttonFade.value,
                     child: Center(
                       child: Text(
-                        'Read-only. Never shared.',
+                        'Read-only. Stored on your device.',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColor.secondaryColor.withValues(alpha: 0.6),

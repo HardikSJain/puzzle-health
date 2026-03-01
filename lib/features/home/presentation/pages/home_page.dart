@@ -192,7 +192,7 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Weekly progress',
+            'This week',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -214,7 +214,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildWeekStatus(WeekProgress progress) {
     return Text(
-      '${progress.daysCompleted}/7 days complete',
+      '${progress.daysCompleted}/7 days on target',
       style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
@@ -228,8 +228,8 @@ class _HomePageState extends State<HomePage> {
     if (rating != null) {
       return Text(
         rating
-            ? 'You marked this week\'s goal as a good fit.'
-            : 'You marked this week\'s goal as not a fit.',
+            ? 'Saved: goal felt right this week.'
+            : 'Saved: goal felt off this week.',
         style: TextStyle(
           fontSize: 13,
           color: AppColor.secondaryColor.withValues(alpha: 0.7),
@@ -241,7 +241,7 @@ class _HomePageState extends State<HomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Was this week\'s goal right for you?',
+          'Was this goal right for you this week?',
           style: TextStyle(
             fontSize: 14,
             color: AppColor.secondaryColor.withValues(alpha: 0.82),

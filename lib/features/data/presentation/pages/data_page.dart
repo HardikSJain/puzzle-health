@@ -64,7 +64,7 @@ class _DataPageState extends State<DataPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Data',
+                  'Signals',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
@@ -75,7 +75,7 @@ class _DataPageState extends State<DataPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Rolling baselines and trends',
+                  'How your goal is chosen',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w400,
@@ -85,11 +85,11 @@ class _DataPageState extends State<DataPage> {
                 ),
                 const SizedBox(height: 32),
                 _buildBaselineCard(
-                  'Current baseline',
+                  'Baseline (30 days)',
                   baseline != null
                       ? '${baseline.avgSteps.round()} steps/day'
                       : 'No baseline yet',
-                  'Last 30 days',
+                  'Average daily steps',
                 ),
                 const SizedBox(height: 16),
                 _buildBaselineCard(
@@ -147,7 +147,7 @@ class _DataPageState extends State<DataPage> {
             ),
           const SizedBox(height: 8),
           Text(
-            latest != null ? 'This week: $latest%' : 'This week: n/a',
+            latest != null ? 'This week: $latest% on target' : 'This week: n/a',
             style: TextStyle(
               fontSize: 14,
               color: AppColor.primaryTextColor.withValues(alpha: 0.7),

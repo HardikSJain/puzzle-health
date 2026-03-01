@@ -31,7 +31,7 @@ class HistoryPage extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Past focuses and outcomes',
+                'Previous goals and outcomes',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w400,
@@ -45,7 +45,7 @@ class HistoryPage extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 80),
                     child: Text(
-                      'No history yet.\nComplete your first week to see results.',
+                      'No completed weeks yet.\nFinish this week to unlock history.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
@@ -69,7 +69,7 @@ class HistoryPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${item.targetSteps} steps/day',
+                          '${item.targetSteps} steps daily goal',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -87,8 +87,8 @@ class HistoryPage extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           item.completionRate != null
-                              ? 'Adherence: ${(item.completionRate! * 100).round()}%'
-                              : 'Adherence: n/a',
+                              ? '${(item.completionRate! * 100).round()}% on target'
+                              : 'On-target rate: n/a',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColor.primaryTextColor.withValues(alpha: 0.8),
