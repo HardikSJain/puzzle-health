@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/models/current_focus.dart';
+import '../../../../core/models/fitness_state.dart';
 import '../../../../core/services/local_store_service.dart';
 import '../../../../core/services/progress_service.dart';
 import '../../../../core/services/weekly_cycle_service.dart';

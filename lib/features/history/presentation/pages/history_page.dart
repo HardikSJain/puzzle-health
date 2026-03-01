@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/models/fitness_state.dart';
 import '../../../../core/services/local_store_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
 

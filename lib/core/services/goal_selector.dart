@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../models/current_focus.dart';
+import '../models/fitness_state.dart';
 import '../models/health_baseline.dart';
 import '../models/user_fitness_profile.dart';
 import 'health_analyzer.dart';
@@ -22,8 +23,8 @@ class GoalSelector {
 
     final prefersRunGoal =
         profile.hasRunningData &&
-        (profile.state.key == 'emerging_runner' ||
-            profile.state.key == 'regular_runner');
+        (profile.state == FitnessState.emergingRunner ||
+            profile.state == FitnessState.regularRunner);
 
     if (prefersRunGoal) {
       final targetRuns = _selectRunFrequencyTarget(
