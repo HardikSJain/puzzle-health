@@ -25,6 +25,7 @@ class _HomePageState extends State<HomePage>
   WeekProgress? _progress;
   bool _loading = true;
   bool _heroEntered = false;
+  int _loadVersion = 0;
   final RefreshController _refreshController = RefreshController();
   late final AnimationController _gradientController;
   late final Animation<double> _gradientAnimation;
@@ -50,6 +51,8 @@ class _HomePageState extends State<HomePage>
   }
 
   Future<void> _load({bool showLoading = true}) async {
+    final int requestVersion = ++_loadVersion;
+
     if (showLoading) {
       setState(() => _loading = true);
     }
@@ -57,7 +60,8 @@ class _HomePageState extends State<HomePage>
     final focus = await WeeklyCycleService.initializeOrRefresh();
     final progress = await ProgressService.getWeekProgress(focus);
 
-    if (!mounted) return;
+    if (!mounted || requestVersion != _loadVersion) return;
+
     _gradientController.reset();
     setState(() {
       _focus = focus;
@@ -67,7 +71,7 @@ class _HomePageState extends State<HomePage>
     });
 
     Future.delayed(const Duration(milliseconds: 120), () {
-      if (!mounted) return;
+      if (!mounted || requestVersion != _loadVersion) return;
       setState(() => _heroEntered = true);
       _gradientController.forward();
     });
