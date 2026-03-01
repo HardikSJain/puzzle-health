@@ -7,6 +7,8 @@ import '../shared_preference/shared_preference_keys.dart';
 import '../shared_preference/shared_preference_manager.dart';
 
 class LocalStoreService {
+  static const int _maxArchivedFocusWeeks = 52;
+
   static Future<void> saveBaseline(HealthBaseline baseline) async {
     await SharedPreferenceManager.setString(
       SharedPreferenceKeys.latestBaseline,
@@ -55,6 +57,11 @@ class LocalStoreService {
   static Future<void> archiveFocus(CurrentFocus focus) async {
     final history = getFocusHistory();
     history.insert(0, focus);
+
+    if (history.length > _maxArchivedFocusWeeks) {
+      history.removeRange(_maxArchivedFocusWeeks, history.length);
+    }
+
     await SharedPreferenceManager.setString(
       SharedPreferenceKeys.weeklyFocusHistory,
       jsonEncode(history.map((e) => e.toJson()).toList()),
