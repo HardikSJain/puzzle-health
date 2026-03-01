@@ -8,12 +8,14 @@ class WeekProgress {
   final int totalDays;
   final int todaySteps;
   final int targetSteps;
+  final List<int> dailySteps; // Monday..Sunday
 
   const WeekProgress({
     required this.daysCompleted,
     required this.totalDays,
     required this.todaySteps,
     required this.targetSteps,
+    required this.dailySteps,
   });
 
   bool get isOnTrackToday => todaySteps >= targetSteps;
@@ -39,15 +41,22 @@ class ProgressService {
     int todaySteps = 0;
     int daysCompleted = 0;
 
-    grouped.forEach((key, points) {
+    final dailySteps = List<int>.filled(7, 0);
+
+    for (int i = 0; i < 7; i++) {
+      final day = weekStart.add(Duration(days: i));
+      final key = _dateKey(day);
+      final points = grouped[key] ?? <HealthDataPoint>[];
       final sum = points
           .map((p) => HealthService.getNumericValue(p) ?? 0)
           .fold<double>(0, (a, b) => a + b)
           .round();
 
+      dailySteps[i] = sum;
+
       if (key == todayKey) todaySteps = sum;
       if (sum >= focus.targetSteps) daysCompleted++;
-    });
+    }
 
     final elapsedDays = _elapsedDaysInWeek(weekStart, now);
 
@@ -56,6 +65,7 @@ class ProgressService {
       totalDays: elapsedDays,
       todaySteps: todaySteps,
       targetSteps: focus.targetSteps,
+      dailySteps: dailySteps,
     );
   }
 

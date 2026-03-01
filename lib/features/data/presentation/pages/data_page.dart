@@ -1,12 +1,51 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/services/local_store_service.dart';
+import '../../../../core/services/progress_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
 
 /// Data Page - Read-only rolling baselines
 /// Confidence repair when users doubt the system
-class DataPage extends StatelessWidget {
+class DataPage extends StatefulWidget {
   const DataPage({super.key});
+
+  @override
+  State<DataPage> createState() => _DataPageState();
+}
+
+class _DataPageState extends State<DataPage> {
+  List<double> _adherence = [];
+  bool _loadingTrend = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTrend();
+  }
+
+  Future<void> _loadTrend() async {
+    final history = LocalStoreService.getFocusHistory();
+    final active = LocalStoreService.getActiveFocus();
+
+    final rates = history
+        .where((h) => h.completionRate != null)
+        .take(4)
+        .map((h) => h.completionRate!)
+        .toList()
+        .reversed
+        .toList();
+
+    if (active != null) {
+      final current = await ProgressService.getCompletionRate(active);
+      rates.add(current);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _adherence = rates.take(4).toList();
+      _loadingTrend = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,48 +55,105 @@ class DataPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColor.backgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(28, 32, 28, 48),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Data',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
-                  color: AppColor.primaryTextColor,
-                  height: 1.2,
-                  letterSpacing: -0.6,
+        child: RefreshIndicator(
+          onRefresh: _loadTrend,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(28, 32, 28, 48),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Data',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
+                    color: AppColor.primaryTextColor,
+                    height: 1.2,
+                    letterSpacing: -0.6,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Rolling baselines and trends',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  color: AppColor.secondaryColor.withValues(alpha: 0.6),
-                  letterSpacing: 0.1,
+                const SizedBox(height: 8),
+                Text(
+                  'Rolling baselines and trends',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    color: AppColor.secondaryColor.withValues(alpha: 0.6),
+                    letterSpacing: 0.1,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 48),
-              _buildBaselineCard(
-                'Current baseline',
-                baseline != null
-                    ? '${baseline.avgSteps.round()} steps/day'
-                    : 'No baseline yet',
-                'Last 30 days',
-              ),
-              const SizedBox(height: 16),
-              _buildBaselineCard(
-                'Pattern',
-                baseline?.activityPattern ?? 'unknown',
-                focus?.reason ?? 'No active focus yet.',
-              ),
-            ],
+                const SizedBox(height: 32),
+                _buildBaselineCard(
+                  'Current baseline',
+                  baseline != null
+                      ? '${baseline.avgSteps.round()} steps/day'
+                      : 'No baseline yet',
+                  'Last 30 days',
+                ),
+                const SizedBox(height: 16),
+                _buildBaselineCard(
+                  'Pattern',
+                  baseline?.activityPattern ?? 'unknown',
+                  focus != null ? _shortReason(focus.reason) : 'No active focus yet.',
+                ),
+                const SizedBox(height: 16),
+                _buildTrendCard(),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTrendCard() {
+    final latest = _adherence.isNotEmpty ? (_adherence.last * 100).round() : null;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColor.primaryTextColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '4-week adherence',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColor.secondaryColor.withValues(alpha: 0.5),
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (_loadingTrend)
+            const SizedBox(height: 42, child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
+          else if (_adherence.isEmpty)
+            Text(
+              'Not enough weekly data yet.',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColor.primaryTextColor.withValues(alpha: 0.6),
+              ),
+            )
+          else
+            SizedBox(
+              height: 52,
+              child: _AdherenceSparkline(values: _adherence),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            latest != null ? 'This week: $latest%' : 'This week: n/a',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColor.primaryTextColor.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -104,6 +200,47 @@ class DataPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  String _shortReason(String reason) {
+    final firstSentence = reason.split('.').first.trim();
+    final clean = firstSentence.isEmpty ? reason.trim() : '$firstSentence.';
+    const maxLen = 88;
+    if (clean.length <= maxLen) return clean;
+    return '${clean.substring(0, maxLen - 1).trimRight()}…';
+  }
+}
+
+class _AdherenceSparkline extends StatelessWidget {
+  final List<double> values; // 0..1
+  const _AdherenceSparkline({required this.values});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: List.generate(values.length, (index) {
+        final ratio = values[index].clamp(0.0, 1.0);
+        final isLatest = index == values.length - 1;
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: FractionallySizedBox(
+              heightFactor: ratio == 0 ? 0.04 : ratio,
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: isLatest
+                      ? AppColor.accentTeal.withValues(alpha: 0.9)
+                      : AppColor.primaryTextColor.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

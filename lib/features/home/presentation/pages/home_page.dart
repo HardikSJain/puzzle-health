@@ -85,7 +85,7 @@ class _HomePageState extends State<HomePage> {
 
                 // Justification
                 Text(
-                  focus.reason,
+                  _shortReason(focus.reason),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w400,
@@ -107,6 +107,10 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
 
+                const SizedBox(height: 18),
+
+                _buildWeeklyChart(progress),
+
                 const SizedBox(height: 24),
 
                 _buildTodayRelevance(progress),
@@ -120,6 +124,39 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildWeeklyChart(WeekProgress progress) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      decoration: BoxDecoration(
+        color: AppColor.primaryTextColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'This week',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColor.secondaryColor.withValues(alpha: 0.7),
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 96,
+            child: _WeeklyBars(
+              dailySteps: progress.dailySteps,
+              targetSteps: progress.targetSteps,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -226,10 +263,94 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  String _shortReason(String reason) {
+    final firstSentence = reason.split('.').first.trim();
+    final clean = firstSentence.isEmpty ? reason.trim() : '$firstSentence.';
+    const maxLen = 88;
+    if (clean.length <= maxLen) return clean;
+    return '${clean.substring(0, maxLen - 1).trimRight()}…';
+  }
+
   String _formatNumber(int number) {
     return number.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]},',
+    );
+  }
+}
+
+class _WeeklyBars extends StatelessWidget {
+  final List<int> dailySteps;
+  final int targetSteps;
+
+  const _WeeklyBars({required this.dailySteps, required this.targetSteps});
+
+  @override
+  Widget build(BuildContext context) {
+    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final maxValue = [...dailySteps, targetSteps].reduce((a, b) => a > b ? a : b);
+    final targetRatio = maxValue == 0 ? 0.0 : (targetSteps / maxValue).clamp(0.0, 1.0);
+    final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6);
+
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            children: [
+              Align(
+                alignment: Alignment(0, 1 - (targetRatio * 2)),
+                child: Container(
+                  height: 1,
+                  color: AppColor.accentTeal.withValues(alpha: 0.5),
+                ),
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(7, (index) {
+                  final value = dailySteps[index];
+                  final ratio = maxValue == 0 ? 0.0 : (value / maxValue).clamp(0.0, 1.0);
+                  final isToday = index == todayIndex;
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: FractionallySizedBox(
+                        heightFactor: ratio == 0 ? 0.04 : ratio,
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isToday
+                                ? AppColor.primaryTextColor.withValues(alpha: 0.9)
+                                : AppColor.primaryTextColor.withValues(alpha: 0.28),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: List.generate(
+            7,
+            (index) => Expanded(
+              child: Center(
+                child: Text(
+                  days[index],
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.secondaryColor.withValues(alpha: index == todayIndex ? 0.9 : 0.55),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
