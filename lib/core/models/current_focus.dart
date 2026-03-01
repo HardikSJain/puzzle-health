@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import 'fitness_state.dart';
+import 'pathway.dart';
+
 class CurrentFocus {
   final String weekStartIso; // YYYY-MM-DD at local midnight
   final int targetSteps;
@@ -8,6 +11,12 @@ class CurrentFocus {
   final int baselineSteps;
   final double? completionRate; // last week's completion rate when archived
 
+  // Intelligence metadata
+  final String goalType; // steps | run_frequency (future-ready)
+  final FitnessState fitnessState;
+  final List<String> overlays;
+  final Pathway? pathway;
+
   const CurrentFocus({
     required this.weekStartIso,
     required this.targetSteps,
@@ -15,6 +24,10 @@ class CurrentFocus {
     required this.state,
     required this.baselineSteps,
     this.completionRate,
+    this.goalType = 'steps',
+    this.fitnessState = FitnessState.inconsistentWalker,
+    this.overlays = const [],
+    this.pathway,
   });
 
   DateTime get weekStart => DateTime.parse(weekStartIso);
@@ -26,6 +39,10 @@ class CurrentFocus {
     'state': state,
     'baselineSteps': baselineSteps,
     'completionRate': completionRate,
+    'goalType': goalType,
+    'fitnessState': fitnessState.key,
+    'overlays': overlays,
+    'pathway': pathway?.toJson(),
   };
 
   factory CurrentFocus.fromJson(Map<String, dynamic> json) => CurrentFocus(
@@ -35,6 +52,12 @@ class CurrentFocus {
     state: json['state'] as String,
     baselineSteps: json['baselineSteps'] as int,
     completionRate: (json['completionRate'] as num?)?.toDouble(),
+    goalType: json['goalType'] as String? ?? 'steps',
+    fitnessState: FitnessStateX.fromKey(json['fitnessState'] as String?),
+    overlays: (json['overlays'] as List<dynamic>?)?.cast<String>() ?? const [],
+    pathway: json['pathway'] != null
+        ? Pathway.fromJson(json['pathway'] as Map<String, dynamic>)
+        : null,
   );
 
   String encode() => jsonEncode(toJson());

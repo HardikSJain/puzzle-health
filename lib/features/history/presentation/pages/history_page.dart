@@ -86,6 +86,14 @@ class HistoryPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
+                          'State: ${item.fitnessState.label}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColor.secondaryColor.withValues(alpha: 0.75),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
                           item.completionRate != null
                               ? '${(item.completionRate! * 100).round()}% on target'
                               : 'On-target rate: n/a',

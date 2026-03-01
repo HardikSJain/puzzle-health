@@ -40,6 +40,10 @@ class WeeklyCycleService {
       state: active.state,
       baselineSteps: active.baselineSteps,
       completionRate: previousCompletionRate,
+      goalType: active.goalType,
+      fitnessState: active.fitnessState,
+      overlays: active.overlays,
+      pathway: active.pathway,
     );
     await LocalStoreService.archiveFocus(archived);
 

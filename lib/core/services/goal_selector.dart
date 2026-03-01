@@ -3,6 +3,8 @@ import 'dart:math';
 import '../models/current_focus.dart';
 import '../models/health_baseline.dart';
 import 'health_analyzer.dart';
+import 'pathway_service.dart';
+import 'state_classifier.dart';
 
 class GoalSelector {
   static CurrentFocus selectWeeklyFocus({
@@ -12,6 +14,11 @@ class GoalSelector {
     double? previousCompletionRate,
   }) {
     final baselineSteps = baseline.avgSteps.round();
+    final classification = StateClassifier.classify(baseline);
+    final pathway = PathwayService.build(
+      state: classification.state,
+      baseline: baseline,
+    );
 
     if (previousFocus == null || previousCompletionRate == null) {
       return CurrentFocus(
@@ -20,6 +27,9 @@ class GoalSelector {
         reason: _baselineReason(baseline),
         state: 'normal_progression',
         baselineSteps: baselineSteps,
+        fitnessState: classification.state,
+        overlays: classification.overlays,
+        pathway: pathway,
       );
     }
 
@@ -44,9 +54,11 @@ class GoalSelector {
     }
 
     // Pattern-aware guardrails
-    if ((baseline.isSporadic || baseline.isWeekendWarrior) && previousCompletionRate < 0.85) {
+    if ((baseline.isSporadic || baseline.isWeekendWarrior) &&
+        previousCompletionRate < 0.85) {
       target = min(target, previousFocus.targetSteps);
-      reason = 'Pattern shows inconsistency. Prioritizing repeatability over stretch.';
+      reason =
+          'Pattern shows inconsistency. Prioritizing repeatability over stretch.';
       state = 'consistency_rebuild';
     }
 
@@ -56,6 +68,9 @@ class GoalSelector {
       reason: reason,
       state: state,
       baselineSteps: baselineSteps,
+      fitnessState: classification.state,
+      overlays: classification.overlays,
+      pathway: pathway,
     );
   }
 

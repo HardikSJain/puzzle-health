@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/models/current_focus.dart';
 import '../../../../core/services/local_store_service.dart';
 import '../../../../core/services/progress_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
@@ -93,16 +94,60 @@ class _DataPageState extends State<DataPage> {
                 ),
                 const SizedBox(height: 16),
                 _buildBaselineCard(
-                  'Pattern',
-                  _patternLabel(baseline?.activityPattern),
+                  'Current state',
+                  focus != null ? focus.fitnessState.label : _patternLabel(baseline?.activityPattern),
                   focus != null ? _shortReason(focus.reason) : 'No active focus yet.',
                 ),
+                const SizedBox(height: 16),
+                _buildPathwayCard(focus),
                 const SizedBox(height: 16),
                 _buildTrendCard(),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPathwayCard(CurrentFocus? focus) {
+    final pathway = focus?.pathway;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColor.primaryTextColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Pathway preview',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColor.secondaryColor.withValues(alpha: 0.5),
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (pathway == null)
+            Text(
+              'Pathway appears after your first goal is generated.',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColor.primaryTextColor.withValues(alpha: 0.6),
+              ),
+            )
+          else ...[
+            _pathwayLine('Now', pathway.now),
+            const SizedBox(height: 8),
+            _pathwayLine('Next', pathway.next),
+            const SizedBox(height: 8),
+            _pathwayLine('Later', pathway.later),
+          ],
+        ],
       ),
     );
   }
@@ -153,6 +198,28 @@ class _DataPageState extends State<DataPage> {
               color: AppColor.primaryTextColor.withValues(alpha: 0.7),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pathwayLine(String label, String value) {
+    return RichText(
+      text: TextSpan(
+        style: TextStyle(
+          fontSize: 14,
+          color: AppColor.primaryTextColor.withValues(alpha: 0.7),
+          height: 1.4,
+        ),
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AppColor.primaryTextColor.withValues(alpha: 0.9),
+            ),
+          ),
+          TextSpan(text: value),
         ],
       ),
     );

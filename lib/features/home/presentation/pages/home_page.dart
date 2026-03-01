@@ -72,6 +72,8 @@ class _HomePageState extends State<HomePage> {
                 _buildTodayHeader(progress, remainingToday),
                 const SizedBox(height: 24),
                 _buildWeeklyGoalBlock(focus),
+                const SizedBox(height: 10),
+                _buildPathwayPeek(focus),
                 const SizedBox(height: 18),
                 _buildWeeklyChart(progress),
                 const SizedBox(height: 20),
@@ -167,6 +169,16 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         const SizedBox(height: 8),
+        const SizedBox(height: 2),
+        Text(
+          focus.fitnessState.label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColor.accentTeal.withValues(alpha: 0.85),
+          ),
+        ),
+        const SizedBox(height: 6),
         Text(
           _shortReason(focus.reason),
           style: TextStyle(
@@ -177,6 +189,42 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPathwayPeek(CurrentFocus focus) {
+    final pathway = focus.pathway;
+    if (pathway == null) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColor.primaryTextColor.withValues(alpha: 0.025),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Next unlock',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColor.secondaryColor.withValues(alpha: 0.72),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            pathway.next,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColor.primaryTextColor.withValues(alpha: 0.75),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
