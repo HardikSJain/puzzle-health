@@ -17,16 +17,32 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
   CurrentFocus? _focus;
   WeekProgress? _progress;
   bool _loading = true;
   bool _heroEntered = false;
+  late final AnimationController _gradientController;
+  late final Animation<double> _gradientAnimation;
 
   @override
   void initState() {
     super.initState();
+    _gradientController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _gradientAnimation = Tween<double>(begin: -1.2, end: 0).animate(
+      CurvedAnimation(parent: _gradientController, curve: Curves.easeOutCubic),
+    );
     _load();
+  }
+
+  @override
+  void dispose() {
+    _gradientController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -36,6 +52,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final progress = await ProgressService.getWeekProgress(focus);
 
     if (!mounted) return;
+    _gradientController.reset();
     setState(() {
       _focus = focus;
       _progress = progress;
@@ -46,6 +63,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     Future.delayed(const Duration(milliseconds: 120), () {
       if (!mounted) return;
       setState(() => _heroEntered = true);
+      _gradientController.forward();
     });
   }
 
@@ -152,16 +170,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       AppColor.cardColor.withValues(alpha: 0.78),
                     ],
                   ),
-                  border: Border.all(
-                    color: AppColor.primaryTextColor.withValues(alpha: 0.1),
-                  ),
                 ),
               ),
-              TweenAnimationBuilder<double>(
-                duration: const Duration(milliseconds: 900),
-                curve: Curves.easeOutCubic,
-                tween: Tween<double>(begin: -1.2, end: heroEntered ? 0.1 : -1.2),
-                builder: (context, value, child) {
+              AnimatedBuilder(
+                animation: _gradientAnimation,
+                builder: (context, child) {
+                  final value = heroEntered ? _gradientAnimation.value : -1.2;
                   return Positioned.fill(
                     child: FractionalTranslation(
                       translation: Offset(value, 0),
@@ -169,8 +183,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         child: Container(
                           decoration: BoxDecoration(
                             gradient: RadialGradient(
-                              center: Alignment.centerLeft,
-                              radius: 0.9,
+                              center: const Alignment(-0.4, 0),
+                              radius: 1.5,
                               colors: [
                                 AppColor.accentTeal.withValues(alpha: 0.32),
                                 AppColor.accentTeal.withValues(alpha: 0.0),
@@ -191,9 +205,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColor.primaryTextColor.withValues(alpha: 0.12),
+                            color: AppColor.primaryTextColor.withValues(
+                              alpha: 0.12,
+                            ),
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
@@ -201,7 +220,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: AppColor.primaryTextColor.withValues(alpha: 0.92),
+                              color: AppColor.primaryTextColor.withValues(
+                                alpha: 0.92,
+                              ),
                               letterSpacing: 0.2,
                             ),
                           ),
@@ -227,11 +248,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       child: LinearProgressIndicator(
                         minHeight: 7,
                         value: progressRatio,
-                        backgroundColor: AppColor.primaryTextColor.withValues(alpha: 0.15),
+                        backgroundColor: AppColor.primaryTextColor.withValues(
+                          alpha: 0.15,
+                        ),
                         valueColor: AlwaysStoppedAnimation<Color>(
                           progress.isOnTrackToday
                               ? AppColor.accentTeal
-                              : AppColor.primaryTextColor.withValues(alpha: 0.9),
+                              : AppColor.primaryTextColor.withValues(
+                                  alpha: 0.9,
+                                ),
                         ),
                       ),
                     ),
@@ -240,7 +265,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       subtitle,
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColor.primaryTextColor.withValues(alpha: 0.82),
+                        color: AppColor.primaryTextColor.withValues(
+                          alpha: 0.82,
+                        ),
                       ),
                     ),
                   ],
@@ -555,8 +582,9 @@ class _WeeklyBars extends StatelessWidget {
       ...dailySteps,
       targetSteps,
     ].reduce((a, b) => a > b ? a : b);
-    final targetRatio =
-        maxValue == 0 ? 0.0 : (targetSteps / maxValue).clamp(0.0, 1.0);
+    final targetRatio = maxValue == 0
+        ? 0.0
+        : (targetSteps / maxValue).clamp(0.0, 1.0);
     final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6);
 
     return Column(
@@ -575,10 +603,9 @@ class _WeeklyBars extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: List.generate(7, (index) {
                   final value = dailySteps[index];
-                  final ratio =
-                      maxValue == 0
-                          ? 0.0
-                          : (value / maxValue).clamp(0.0, 1.0);
+                  final ratio = maxValue == 0
+                      ? 0.0
+                      : (value / maxValue).clamp(0.0, 1.0);
                   final isToday = index == todayIndex;
                   final isComplete = value >= targetSteps;
 
@@ -590,16 +617,15 @@ class _WeeklyBars extends StatelessWidget {
                         alignment: Alignment.bottomCenter,
                         child: Container(
                           decoration: BoxDecoration(
-                            color:
-                                isComplete
-                                    ? AppColor.accentTeal.withValues(alpha: 0.75)
-                                    : isToday
-                                    ? AppColor.primaryTextColor.withValues(
-                                      alpha: 0.88,
-                                    )
-                                    : AppColor.primaryTextColor.withValues(
-                                      alpha: 0.26,
-                                    ),
+                            color: isComplete
+                                ? AppColor.accentTeal.withValues(alpha: 0.75)
+                                : isToday
+                                ? AppColor.primaryTextColor.withValues(
+                                    alpha: 0.88,
+                                  )
+                                : AppColor.primaryTextColor.withValues(
+                                    alpha: 0.26,
+                                  ),
                             borderRadius: BorderRadius.circular(3),
                           ),
                         ),
