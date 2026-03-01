@@ -24,6 +24,7 @@ class OnboardingInsightsPage extends StatefulWidget {
 class _OnboardingInsightsPageState extends State<OnboardingInsightsPage>
     with TickerProviderStateMixin {
   late final List<HealthInsight> _insights;
+  bool _isCompleting = false;
 
   late AnimationController _pageController;
   late AnimationController _ctaController;
@@ -97,11 +98,17 @@ class _OnboardingInsightsPageState extends State<OnboardingInsightsPage>
   }
 
   Future<void> _completeOnboarding() async {
+    if (_isCompleting) return;
     HapticFeedback.mediumImpact();
-    await WeeklyCycleService.initializeOrRefresh(seedBaseline: widget.baseline);
-    await AppRouter.completeOnboarding();
-    if (mounted) {
-      context.go('${RoutesConstants.dashboard}/${RoutesConstants.home}');
+    setState(() => _isCompleting = true);
+    try {
+      await WeeklyCycleService.initializeOrRefresh(seedBaseline: widget.baseline);
+      await AppRouter.completeOnboarding();
+      if (mounted) {
+        context.go('${RoutesConstants.dashboard}/${RoutesConstants.home}');
+      }
+    } finally {
+      if (mounted) setState(() => _isCompleting = false);
     }
   }
 
@@ -325,9 +332,10 @@ class _OnboardingInsightsPageState extends State<OnboardingInsightsPage>
               padding: const EdgeInsets.fromLTRB(28, 40, 28, 48),
               child: AppButton(
                 text: "Continue",
-                onPressed: _ctaController.value > 0.8
-                    ? _completeOnboarding
-                    : null,
+                isLoading: _isCompleting,
+                onPressed: _isCompleting || _ctaController.value <= 0.8
+                    ? null
+                    : _completeOnboarding,
               ),
             ),
           ),

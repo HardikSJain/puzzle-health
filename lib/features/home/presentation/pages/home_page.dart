@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import '../../../../core/models/current_focus.dart';
 import '../../../../core/models/fitness_state.dart';
@@ -27,7 +26,6 @@ class _HomePageState extends State<HomePage>
   bool _heroEntered = false;
   String? _loadError;
   int _loadVersion = 0;
-  final RefreshController _refreshController = RefreshController();
   late final AnimationController _gradientController;
   late final Animation<double> _gradientAnimation;
 
@@ -46,7 +44,6 @@ class _HomePageState extends State<HomePage>
 
   @override
   void dispose() {
-    _refreshController.dispose();
     _gradientController.dispose();
     super.dispose();
   }
@@ -89,16 +86,6 @@ class _HomePageState extends State<HomePage>
         _loadError = 'Could not refresh your data. Pull to refresh or retry.';
       });
       return false;
-    }
-  }
-
-  Future<void> _onRefresh() async {
-    final ok = await _load(showLoading: false);
-    if (!mounted) return;
-    if (ok) {
-      _refreshController.refreshCompleted();
-    } else {
-      _refreshController.refreshFailed();
     }
   }
 
@@ -155,49 +142,41 @@ class _HomePageState extends State<HomePage>
       backgroundColor: AppColor.backgroundColor,
       body: SafeArea(
         bottom: false,
-        child: SmartRefresher(
-          controller: _refreshController,
-          enablePullDown: true,
-          header: const WaterDropHeader(
-            complete: SizedBox.shrink(),
-            waterDropColor: AppColor.accentTeal,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
           ),
-          onRefresh: _onRefresh,
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            padding: const EdgeInsets.fromLTRB(
-              24,
-              24,
-              24,
-              DashboardShell.bottomInsetForContent,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCommandHero(
-                  progress,
-                  remainingToday,
-                  isRunGoal: isRunGoal,
-                  targetRunsPerWeek: focus.targetRunsPerWeek,
-                  heroEntered: _heroEntered,
-                ),
-                const SizedBox(height: 24),
-                _buildWeeklyGoalBlock(focus),
-                const SizedBox(height: 10),
-                _buildPathwayPeek(focus),
-                const SizedBox(height: 10),
-                _buildGoalChangeCard(focus),
-                const SizedBox(height: 18),
-                _buildWeeklyChart(progress, isRunGoal: isRunGoal),
-                const SizedBox(height: 20),
-                _buildWeekStatus(progress, isRunGoal: isRunGoal),
-                const SizedBox(height: 24),
-                _buildRatingPrompt(),
-                const SizedBox(height: 64),
-              ],
-            ),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            DashboardShell.bottomInsetForContent +
+                MediaQuery.paddingOf(context).bottom,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildCommandHero(
+                progress,
+                remainingToday,
+                isRunGoal: isRunGoal,
+                targetRunsPerWeek: focus.targetRunsPerWeek,
+                heroEntered: _heroEntered,
+              ),
+              const SizedBox(height: 24),
+              _buildWeeklyGoalBlock(focus),
+              const SizedBox(height: 10),
+              _buildPathwayPeek(focus),
+              const SizedBox(height: 10),
+              _buildGoalChangeCard(focus),
+              const SizedBox(height: 18),
+              _buildWeeklyChart(progress, isRunGoal: isRunGoal),
+              const SizedBox(height: 20),
+              _buildWeekStatus(progress, isRunGoal: isRunGoal),
+              const SizedBox(height: 24),
+              _buildRatingPrompt(),
+              const SizedBox(height: 24),
+            ],
           ),
         ),
       ),

@@ -69,11 +69,12 @@ class _DataPageState extends State<DataPage> {
           physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics(),
           ),
-          padding: const EdgeInsets.fromLTRB(
+          padding: EdgeInsets.fromLTRB(
             28,
             32,
             28,
-            DashboardShell.bottomInsetForContent,
+            DashboardShell.bottomInsetForContent +
+                MediaQuery.paddingOf(context).bottom,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

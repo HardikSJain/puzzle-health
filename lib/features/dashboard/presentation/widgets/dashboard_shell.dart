@@ -18,6 +18,7 @@ class DashboardShell extends StatelessWidget {
 
   /// Bottom padding to use in scroll views so the last content clears the
   /// floating nav bar when scrolled to end. Content can scroll behind the bar.
+  /// Add MediaQuery.paddingOf(context).bottom in each page for safe area.
   static const double bottomInsetForContent = 100;
 
   static const Duration navAnimDuration = Duration(milliseconds: 300);
@@ -107,7 +108,10 @@ class _BottomNavigationView extends StatelessWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(barRadius),
                   color: color,

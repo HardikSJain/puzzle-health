@@ -20,7 +20,13 @@ class HistoryPage extends StatelessWidget {
         bottom: false,
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(28, 32, 28, DashboardShell.bottomInsetForContent),
+          padding: EdgeInsets.fromLTRB(
+            28,
+            32,
+            28,
+            DashboardShell.bottomInsetForContent +
+                MediaQuery.paddingOf(context).bottom,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
