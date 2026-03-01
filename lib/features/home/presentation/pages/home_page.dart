@@ -1,85 +1,181 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/models/current_focus.dart';
+import '../../../../core/models/fitness_state.dart';
+import '../../../../core/services/local_store_service.dart';
+import '../../../../core/services/progress_service.dart';
+import '../../../../core/services/weekly_cycle_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
+import '../../../../core/widgets/glass_surface.dart';
+import '../../../dashboard/presentation/widgets/dashboard_shell.dart';
 
-/// Home Page - The decision surface
-/// Answers: What am I supposed to do right now, and am I on track?
-///
-/// CRITICAL RULES - DO NOT ADD:
-/// - Tips, encouragement, or motivational language
-/// - Educational content or explanations
-/// - Visuals, graphs, or celebratory states
-/// - Multiple goals or alternatives
-/// - Interactive elements beyond navigation
-///
-/// This page is a status display. The system speaks; the user complies or doesn't.
-/// Adaptation happens across weeks, not within the page.
-///
-/// STATE PRESERVATION:
-/// ShellRoute preserves widget tree when switching tabs.
-/// For scroll position preservation (if needed later), add PageStorageKey.
-class HomePage extends StatelessWidget {
+/// Home Page - Command center
+/// Primary question: What should I do today, and how close am I?
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
-  // TODO: Replace with actual data from backend
-  static const int _weeklyGoal = 3000;
-  static const int _daysCompleted = 3;
-  static const int _totalDays = 7;
-  static const int _todaySteps = 1247;
-  static const String _focusStatement = "3,000 steps every day this week.";
-  static const String _focusReason =
-      "Your weekend drop limits weekly consistency.";
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage>
+    with SingleTickerProviderStateMixin {
+  CurrentFocus? _focus;
+  WeekProgress? _progress;
+  bool _loading = true;
+  bool _heroEntered = false;
+  String? _loadError;
+  int _loadVersion = 0;
+  late final AnimationController _gradientController;
+  late final Animation<double> _gradientAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _gradientController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _gradientAnimation = Tween<double>(begin: -1.2, end: 0).animate(
+      CurvedAnimation(parent: _gradientController, curve: Curves.easeOutCubic),
+    );
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _gradientController.dispose();
+    super.dispose();
+  }
+
+  Future<bool> _load({bool showLoading = true}) async {
+    final int requestVersion = ++_loadVersion;
+
+    if (showLoading) {
+      setState(() => _loading = true);
+    }
+
+    try {
+      final focus = await WeeklyCycleService.initializeOrRefresh();
+      final progress = await ProgressService.getWeekProgress(focus);
+
+      if (!mounted || requestVersion != _loadVersion) return false;
+
+      _gradientController.reset();
+      setState(() {
+        _focus = focus;
+        _progress = progress;
+        _loading = false;
+        _heroEntered = false;
+        _loadError = null;
+      });
+
+      Future.delayed(const Duration(milliseconds: 120), () {
+        if (!mounted || requestVersion != _loadVersion) return;
+        setState(() => _heroEntered = true);
+        _gradientController.forward();
+      });
+      return true;
+    } catch (_) {
+      if (!mounted || requestVersion != _loadVersion) return false;
+
+      _gradientController.reset();
+      setState(() {
+        _loading = false;
+        _heroEntered = false;
+        _loadError = 'Could not refresh your data. Pull to refresh or retry.';
+      });
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: AppColor.backgroundColor,
+        body: SafeArea(
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+      );
+    }
+
+    if (_focus == null || _progress == null) {
+      return Scaffold(
+        backgroundColor: AppColor.backgroundColor,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _loadError ?? 'Could not load your fitness data.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColor.primaryTextColor.withValues(alpha: 0.8),
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () => _load(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final focus = _focus!;
+    final progress = _progress!;
+    final remainingToday = (focus.targetSteps - progress.todaySteps)
+        .clamp(0, focus.targetSteps)
+        .toInt();
+    final isRunGoal = focus.goalType == 'run_frequency';
+
     return Scaffold(
       backgroundColor: AppColor.backgroundColor,
       body: SafeArea(
+        bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(28, 32, 28, 48),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            24,
+            24,
+            DashboardShell.bottomInsetForContent +
+                MediaQuery.paddingOf(context).bottom,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
-
-              // The Focus - Declarative state, not imperative command
-              Text(
-                _focusStatement,
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
-                  color: AppColor.primaryTextColor,
-                  height: 1.2,
-                  letterSpacing: -0.6,
-                ),
+              _buildCommandHero(
+                progress,
+                remainingToday,
+                isRunGoal: isRunGoal,
+                targetRunsPerWeek: focus.targetRunsPerWeek,
+                heroEntered: _heroEntered,
               ),
-
-              const SizedBox(height: 16),
-
-              // Justification - Metadata explaining constraint
-              Text(
-                _focusReason,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  color: AppColor.primaryTextColor.withValues(alpha: 0.5),
-                  height: 1.5,
-                  letterSpacing: -0.1,
-                ),
-              ),
-
-              const SizedBox(height: 36),
-
-              // Progress state - Automatically derived, coarse
-              _buildProgressState(),
-
               const SizedBox(height: 24),
-
-              // Today's relevance - What counts today?
-              _buildTodayRelevance(),
-
-              // Silence - Intentional empty space
-              const SizedBox(height: 120),
+              _buildWeeklyGoalBlock(focus),
+              const SizedBox(height: 10),
+              _buildPathwayPeek(focus),
+              const SizedBox(height: 10),
+              _buildGoalChangeCard(focus),
+              const SizedBox(height: 18),
+              _buildWeeklyChart(progress, isRunGoal: isRunGoal),
+              const SizedBox(height: 20),
+              _buildWeekStatus(progress, isRunGoal: isRunGoal),
+              const SizedBox(height: 24),
+              _buildRatingPrompt(),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -87,66 +183,231 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildProgressState() {
-    return Text(
-      '$_daysCompleted of $_totalDays days completed',
-      style: TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        color: AppColor.primaryTextColor,
-        letterSpacing: -0.3,
+  Widget _buildCommandHero(
+    WeekProgress progress,
+    int remainingToday, {
+    required bool isRunGoal,
+    required int? targetRunsPerWeek,
+    required bool heroEntered,
+  }) {
+    final progressRatio = isRunGoal
+        ? ((progress.runsCompleted) /
+                  ((targetRunsPerWeek ?? 2).clamp(1, 7).toDouble()))
+              .clamp(0.0, 1.0)
+              .toDouble()
+        : progress.targetSteps == 0
+        ? 0.0
+        : (progress.todaySteps / progress.targetSteps)
+              .clamp(0.0, 1.0)
+              .toDouble();
+
+    final subtitle = isRunGoal
+        ? (progress.runsCompleted >= (targetRunsPerWeek ?? 2)
+              ? 'Weekly run goal complete.'
+              : '${(targetRunsPerWeek ?? 2) - progress.runsCompleted} runs to go this week.')
+        : (progress.isOnTrackToday
+              ? 'Today complete.'
+              : '${_formatNumber(remainingToday)} steps to go today.');
+
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 520),
+      curve: Curves.easeOutCubic,
+      offset: heroEntered ? Offset.zero : const Offset(-0.06, 0),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 520),
+        opacity: heroEntered ? 1 : 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
+            children: [
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColor.cardColor.withValues(alpha: 0.9),
+                      AppColor.cardColor.withValues(alpha: 0.78),
+                    ],
+                  ),
+                ),
+              ),
+              AnimatedBuilder(
+                animation: _gradientAnimation,
+                builder: (context, child) {
+                  final value = heroEntered ? _gradientAnimation.value : -1.2;
+                  return Positioned.fill(
+                    child: FractionalTranslation(
+                      translation: Offset(value, 0),
+                      child: IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              center: const Alignment(-0.4, 0),
+                              radius: 1.5,
+                              colors: [
+                                AppColor.accentTeal.withValues(alpha: 0.32),
+                                AppColor.accentTeal.withValues(alpha: 0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColor.primaryTextColor.withValues(
+                              alpha: 0.12,
+                            ),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            'Today',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColor.primaryTextColor.withValues(
+                                alpha: 0.92,
+                              ),
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      isRunGoal
+                          ? '${progress.runsCompleted} / ${targetRunsPerWeek ?? 2} runs this week'
+                          : '${_formatNumber(progress.todaySteps)} / ${_formatNumber(progress.targetSteps)} steps',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        color: AppColor.primaryTextColor,
+                        letterSpacing: -0.7,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        minHeight: 7,
+                        value: progressRatio,
+                        backgroundColor: AppColor.primaryTextColor.withValues(
+                          alpha: 0.15,
+                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          progress.isOnTrackToday
+                              ? AppColor.accentTeal
+                              : AppColor.primaryTextColor.withValues(
+                                  alpha: 0.9,
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColor.primaryTextColor.withValues(
+                          alpha: 0.82,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildTodayRelevance() {
-    final isOnTrack = _todaySteps >= _weeklyGoal;
-    final todayStatus = isOnTrack
-        ? 'Today complete.'
-        : 'Today counts if you reach ${_formatNumber(_weeklyGoal)} steps.';
+  Widget _buildWeeklyGoalBlock(CurrentFocus focus) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          focus.goalType == 'run_frequency'
+              ? 'Goal: ${focus.targetRunsPerWeek ?? 2} runs this week'
+              : 'Goal: ${_formatNumber(focus.targetSteps)} steps daily this week',
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: AppColor.primaryTextColor,
+            letterSpacing: -0.35,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const SizedBox(height: 2),
+        Text(
+          focus.fitnessState.label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColor.accentTeal.withValues(alpha: 0.85),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          _shortReason(focus.reason),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: AppColor.primaryTextColor.withValues(alpha: 0.62),
+            height: 1.45,
+          ),
+        ),
+      ],
+    );
+  }
 
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Row(
+  Widget _buildPathwayPeek(CurrentFocus focus) {
+    final pathway = focus.pathway;
+    if (pathway == null) return const SizedBox.shrink();
+
+    return GlassSurface(
+      radius: 10,
+      alpha: 0.035,
+      padding: const EdgeInsets.all(12),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 2,
-            height: 32,
-            margin: const EdgeInsets.only(top: 2),
-            decoration: BoxDecoration(
-              color: isOnTrack
-                  ? AppColor.accentTeal.withValues(alpha: 0.4)
-                  : AppColor.primaryTextColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(1),
+          Text(
+            'Next unlock',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColor.secondaryColor.withValues(alpha: 0.72),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Today',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.secondaryColor.withValues(alpha: 0.4),
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  todayStatus,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    color: AppColor.primaryTextColor.withValues(alpha: 0.7),
-                    height: 1.5,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 6),
+          Text(
+            pathway.next,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColor.primaryTextColor.withValues(alpha: 0.75),
+              height: 1.4,
             ),
           ),
         ],
@@ -154,10 +415,325 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  Widget _buildGoalChangeCard(CurrentFocus focus) {
+    final summary = focus.changeSummary;
+    if (summary == null || summary.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return GlassSurface(
+      radius: 10,
+      alpha: 0.035,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Why this goal changed',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColor.secondaryColor.withValues(alpha: 0.72),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            summary,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColor.primaryTextColor.withValues(alpha: 0.75),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyChart(WeekProgress progress, {required bool isRunGoal}) {
+    return GlassSurface(
+      radius: 12,
+      alpha: 0.04,
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'This week',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColor.secondaryColor.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 90,
+            child: isRunGoal
+                ? _WeeklyRunBars(
+                    dailyRuns: progress.dailyRuns,
+                    targetRunsPerWeek: progress.targetRunsPerWeek,
+                  )
+                : _WeeklyBars(
+                    dailySteps: progress.dailySteps,
+                    targetSteps: progress.targetSteps,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeekStatus(WeekProgress progress, {required bool isRunGoal}) {
+    return Text(
+      isRunGoal
+          ? '${progress.runsCompleted}/${progress.targetRunsPerWeek} runs complete'
+          : '${progress.daysCompleted}/7 days on target',
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: AppColor.primaryTextColor.withValues(alpha: 0.9),
+      ),
+    );
+  }
+
+  Widget _buildRatingPrompt() {
+    final rating = LocalStoreService.getWeeklyRating();
+    if (rating != null) {
+      return Text(
+        rating
+            ? 'Saved: goal felt right this week.'
+            : 'Saved: goal felt off this week.',
+        style: TextStyle(
+          fontSize: 13,
+          color: AppColor.secondaryColor.withValues(alpha: 0.7),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Was this goal right for you this week?',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColor.secondaryColor.withValues(alpha: 0.82),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Semantics(
+              button: true,
+              label: 'Mark goal as right for this week',
+              child: Tooltip(
+                message: 'Goal felt right',
+                child: OutlinedButton(
+                  onPressed: () async {
+                    await LocalStoreService.saveWeeklyRating(true);
+                    if (mounted) setState(() {});
+                  },
+                  child: const Text('👍'),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Semantics(
+              button: true,
+              label: 'Mark goal as not right for this week',
+              child: Tooltip(
+                message: 'Goal felt off',
+                child: OutlinedButton(
+                  onPressed: () async {
+                    await LocalStoreService.saveWeeklyRating(false);
+                    if (mounted) setState(() {});
+                  },
+                  child: const Text('👎'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _shortReason(String reason) {
+    final firstSentence = reason.split('.').first.trim();
+    final clean = firstSentence.isEmpty ? reason.trim() : '$firstSentence.';
+    const maxLen = 84;
+    if (clean.length <= maxLen) return clean;
+    return '${clean.substring(0, maxLen - 1).trimRight()}…';
+  }
+
   String _formatNumber(int number) {
     return number.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]},',
+    );
+  }
+}
+
+class _WeeklyRunBars extends StatelessWidget {
+  final List<int> dailyRuns;
+  final int targetRunsPerWeek;
+
+  const _WeeklyRunBars({
+    required this.dailyRuns,
+    required this.targetRunsPerWeek,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6).toInt();
+
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(7, (index) {
+              final runs = dailyRuns[index];
+              final ratio = runs > 0 ? 1.0 : 0.1;
+              final isToday = index == todayIndex;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: FractionallySizedBox(
+                    heightFactor: ratio,
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: runs > 0
+                            ? AppColor.accentTeal.withValues(alpha: 0.75)
+                            : isToday
+                            ? AppColor.primaryTextColor.withValues(alpha: 0.32)
+                            : AppColor.primaryTextColor.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: List.generate(
+            7,
+            (index) => Expanded(
+              child: Center(
+                child: Text(
+                  days[index],
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.secondaryColor.withValues(
+                      alpha: index == todayIndex ? 0.9 : 0.55,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WeeklyBars extends StatelessWidget {
+  final List<int> dailySteps;
+  final int targetSteps;
+
+  const _WeeklyBars({required this.dailySteps, required this.targetSteps});
+
+  @override
+  Widget build(BuildContext context) {
+    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final maxValue = [
+      ...dailySteps,
+      targetSteps,
+    ].reduce((a, b) => a > b ? a : b);
+    final targetRatio = maxValue == 0
+        ? 0.0
+        : (targetSteps / maxValue).clamp(0.0, 1.0).toDouble();
+    final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6).toInt();
+
+    return Column(
+      children: [
+        Expanded(
+          child: Stack(
+            children: [
+              Align(
+                alignment: Alignment(0, 1 - (targetRatio * 2)),
+                child: Container(
+                  height: 1,
+                  color: AppColor.accentTeal.withValues(alpha: 0.45),
+                ),
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(7, (index) {
+                  final value = dailySteps[index];
+                  final ratio = maxValue == 0
+                      ? 0.0
+                      : (value / maxValue).clamp(0.0, 1.0).toDouble();
+                  final isToday = index == todayIndex;
+                  final isComplete = value >= targetSteps;
+
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: FractionallySizedBox(
+                        heightFactor: ratio == 0 ? 0.04 : ratio,
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isComplete
+                                ? AppColor.accentTeal.withValues(alpha: 0.75)
+                                : isToday
+                                ? AppColor.primaryTextColor.withValues(
+                                    alpha: 0.88,
+                                  )
+                                : AppColor.primaryTextColor.withValues(
+                                    alpha: 0.26,
+                                  ),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: List.generate(
+            7,
+            (index) => Expanded(
+              child: Center(
+                child: Text(
+                  days[index],
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.secondaryColor.withValues(
+                      alpha: index == todayIndex ? 0.9 : 0.55,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

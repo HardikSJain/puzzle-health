@@ -23,11 +23,11 @@ class _OnboardingMagicPageState extends State<OnboardingMagicPage>
 
   // Analysis steps
   static const List<String> _steps = [
-    'Connecting to Health...',
-    'Fetching your last 30 days...',
-    'Processing your data...',
-    'Finding patterns...',
-    'Almost there...',
+    'Connecting to health data...',
+    'Reading your last 30 days...',
+    'Calculating baseline...',
+    'Identifying your pattern...',
+    'Preparing your first goal...',
   ];
 
   int _currentStep = 0;
@@ -249,8 +249,8 @@ class _OnboardingMagicPageState extends State<OnboardingMagicPage>
           duration: const Duration(milliseconds: 300),
           child: Text(
             _isComplete
-                ? 'Let\'s see what we found.'
-                : 'This will only take a moment.',
+                ? 'Your baseline is ready.'
+                : 'This takes a few seconds.',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w400,
