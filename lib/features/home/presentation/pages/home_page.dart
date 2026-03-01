@@ -17,10 +17,11 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
   CurrentFocus? _focus;
   WeekProgress? _progress;
   bool _loading = true;
+  bool _heroEntered = false;
 
   @override
   void initState() {
@@ -39,6 +40,12 @@ class _HomePageState extends State<HomePage> {
       _focus = focus;
       _progress = progress;
       _loading = false;
+      _heroEntered = false;
+    });
+
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (!mounted) return;
+      setState(() => _heroEntered = true);
     });
   }
 
@@ -77,6 +84,7 @@ class _HomePageState extends State<HomePage> {
                   remainingToday,
                   isRunGoal: isRunGoal,
                   targetRunsPerWeek: focus.targetRunsPerWeek,
+                  heroEntered: _heroEntered,
                 ),
                 const SizedBox(height: 24),
                 _buildWeeklyGoalBlock(focus),
@@ -104,6 +112,7 @@ class _HomePageState extends State<HomePage> {
     int remainingToday, {
     required bool isRunGoal,
     required int? targetRunsPerWeek,
+    required bool heroEntered,
   }) {
     final progressRatio = isRunGoal
         ? ((progress.runsCompleted) / ((targetRunsPerWeek ?? 2).clamp(1, 7)))
@@ -120,82 +129,126 @@ class _HomePageState extends State<HomePage> {
               ? 'Today complete.'
               : '${_formatNumber(remainingToday)} steps to go today.');
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColor.accentTeal.withValues(alpha: 0.28),
-            AppColor.cardColor.withValues(alpha: 0.78),
-          ],
-        ),
-        border: Border.all(
-          color: AppColor.primaryTextColor.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 520),
+      curve: Curves.easeOutCubic,
+      offset: heroEntered ? Offset.zero : const Offset(-0.06, 0),
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 520),
+        opacity: heroEntered ? 1 : 0,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Stack(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  color: AppColor.primaryTextColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  'Today',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.primaryTextColor.withValues(alpha: 0.92),
-                    letterSpacing: 0.2,
+                  borderRadius: BorderRadius.circular(18),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColor.cardColor.withValues(alpha: 0.9),
+                      AppColor.cardColor.withValues(alpha: 0.78),
+                    ],
                   ),
+                  border: Border.all(
+                    color: AppColor.primaryTextColor.withValues(alpha: 0.1),
+                  ),
+                ),
+              ),
+              TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 900),
+                curve: Curves.easeOutCubic,
+                tween: Tween<double>(begin: -1.2, end: heroEntered ? 0.1 : -1.2),
+                builder: (context, value, child) {
+                  return Positioned.fill(
+                    child: FractionalTranslation(
+                      translation: Offset(value, 0),
+                      child: IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              center: Alignment.centerLeft,
+                              radius: 0.9,
+                              colors: [
+                                AppColor.accentTeal.withValues(alpha: 0.32),
+                                AppColor.accentTeal.withValues(alpha: 0.0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColor.primaryTextColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            'Today',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColor.primaryTextColor.withValues(alpha: 0.92),
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      isRunGoal
+                          ? '${progress.runsCompleted} / ${targetRunsPerWeek ?? 2} runs this week'
+                          : '${_formatNumber(progress.todaySteps)} / ${_formatNumber(progress.targetSteps)} steps',
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        color: AppColor.primaryTextColor,
+                        letterSpacing: -0.7,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        minHeight: 7,
+                        value: progressRatio,
+                        backgroundColor: AppColor.primaryTextColor.withValues(alpha: 0.15),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          progress.isOnTrackToday
+                              ? AppColor.accentTeal
+                              : AppColor.primaryTextColor.withValues(alpha: 0.9),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColor.primaryTextColor.withValues(alpha: 0.82),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            isRunGoal
-                ? '${progress.runsCompleted} / ${targetRunsPerWeek ?? 2} runs this week'
-                : '${_formatNumber(progress.todaySteps)} / ${_formatNumber(progress.targetSteps)} steps',
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w700,
-              color: AppColor.primaryTextColor,
-              letterSpacing: -0.7,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              minHeight: 7,
-              value: progressRatio,
-              backgroundColor: AppColor.primaryTextColor.withValues(alpha: 0.15),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                progress.isOnTrackToday
-                    ? AppColor.accentTeal
-                    : AppColor.primaryTextColor.withValues(alpha: 0.9),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColor.primaryTextColor.withValues(alpha: 0.82),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
