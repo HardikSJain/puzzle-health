@@ -40,6 +40,8 @@ class UserFitnessProfile {
   };
 
   factory UserFitnessProfile.fromJson(Map<String, dynamic> json) {
+    final parsedConfidence = json['confidence'] as int? ?? 50;
+
     return UserFitnessProfile(
       baseline: HealthBaseline.fromJson(json['baseline'] as Map<String, dynamic>),
       state: FitnessStateX.fromKey(json['state'] as String?),
@@ -53,7 +55,7 @@ class UserFitnessProfile {
       weeklyRunCount: json['weeklyRunCount'] as int? ?? 0,
       avgRunDistanceMeters: (json['avgRunDistanceMeters'] as num?)?.toDouble(),
       avgRunPaceMinPerKm: (json['avgRunPaceMinPerKm'] as num?)?.toDouble(),
-      confidence: json['confidence'] as int? ?? 50,
+      confidence: parsedConfidence.clamp(0, 100),
     );
   }
 }
