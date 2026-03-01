@@ -45,9 +45,12 @@ class _DataPageState extends State<DataPage> {
       rates.add(current);
     }
 
+    final trimmedRates =
+        rates.length <= 4 ? rates : rates.sublist(rates.length - 4);
+
     if (!mounted) return;
     setState(() {
-      _adherence = rates.take(4).toList();
+      _adherence = trimmedRates;
       _loadingTrend = false;
     });
   }
