@@ -20,7 +20,8 @@ class SharedPreferenceManager {
   }
 
   static Future<bool> setString(String key, String value) async {
-    return _prefsInstance?.setString(key, value) ?? Future.value(false);
+    final prefs = await _instance;
+    return prefs.setString(key, value);
   }
 
   // Bool
@@ -29,7 +30,8 @@ class SharedPreferenceManager {
   }
 
   static Future<bool> setBool(String key, bool value) async {
-    return _prefsInstance?.setBool(key, value) ?? Future.value(false);
+    final prefs = await _instance;
+    return prefs.setBool(key, value);
   }
 
   // Int
@@ -38,16 +40,19 @@ class SharedPreferenceManager {
   }
 
   static Future<bool> setInt(String key, int value) async {
-    return _prefsInstance?.setInt(key, value) ?? Future.value(false);
+    final prefs = await _instance;
+    return prefs.setInt(key, value);
   }
 
   // Remove key
   static Future<bool> remove(String key) async {
-    return _prefsInstance?.remove(key) ?? Future.value(false);
+    final prefs = await _instance;
+    return prefs.remove(key);
   }
 
   // Clear all data (for logout)
   static Future<bool> clearAll() async {
-    return _prefsInstance?.clear() ?? Future.value(false);
+    final prefs = await _instance;
+    return prefs.clear();
   }
 }
