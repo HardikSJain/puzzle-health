@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../models/current_focus.dart';
 import '../models/health_baseline.dart';
+import '../models/user_fitness_profile.dart';
 import '../shared_preference/shared_preference_keys.dart';
 import '../shared_preference/shared_preference_manager.dart';
 
@@ -26,6 +27,21 @@ class LocalStoreService {
       SharedPreferenceKeys.activeWeeklyFocus,
       focus.encode(),
     );
+  }
+
+  static Future<void> saveFitnessProfile(UserFitnessProfile profile) async {
+    await SharedPreferenceManager.setString(
+      SharedPreferenceKeys.latestFitnessProfile,
+      jsonEncode(profile.toJson()),
+    );
+  }
+
+  static UserFitnessProfile? getFitnessProfile() {
+    final raw = SharedPreferenceManager.getString(
+      SharedPreferenceKeys.latestFitnessProfile,
+    );
+    if (raw == null || raw.isEmpty) return null;
+    return UserFitnessProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 
   static CurrentFocus? getActiveFocus() {

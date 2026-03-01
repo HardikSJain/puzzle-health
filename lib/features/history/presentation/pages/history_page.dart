@@ -69,7 +69,9 @@ class HistoryPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${item.targetSteps} steps daily goal',
+                          item.goalType == 'run_frequency'
+                              ? '${item.targetRunsPerWeek ?? 2} runs weekly goal'
+                              : '${item.targetSteps} steps daily goal',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,

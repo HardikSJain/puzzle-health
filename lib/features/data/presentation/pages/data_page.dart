@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/models/current_focus.dart';
+import '../../../../core/models/user_fitness_profile.dart';
 import '../../../../core/services/local_store_service.dart';
 import '../../../../core/services/progress_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
@@ -52,6 +53,7 @@ class _DataPageState extends State<DataPage> {
   Widget build(BuildContext context) {
     final baseline = LocalStoreService.getBaseline();
     final focus = LocalStoreService.getActiveFocus();
+    final profile = LocalStoreService.getFitnessProfile();
 
     return Scaffold(
       backgroundColor: AppColor.backgroundColor,
@@ -101,6 +103,8 @@ class _DataPageState extends State<DataPage> {
                 const SizedBox(height: 16),
                 _buildPathwayCard(focus),
                 const SizedBox(height: 16),
+                _buildLastRunCard(profile),
+                const SizedBox(height: 16),
                 _buildTrendCard(),
               ],
             ),
@@ -146,6 +150,64 @@ class _DataPageState extends State<DataPage> {
             _pathwayLine('Next', pathway.next),
             const SizedBox(height: 8),
             _pathwayLine('Later', pathway.later),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLastRunCard(UserFitnessProfile? profile) {
+    final lastRun = profile?.lastRun;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColor.primaryTextColor.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Last run',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColor.secondaryColor.withValues(alpha: 0.5),
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (lastRun == null)
+            Text(
+              'No running session detected yet.',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColor.primaryTextColor.withValues(alpha: 0.6),
+              ),
+            )
+          else ...[
+            _pathwayLine('When', _formatDate(lastRun.start)),
+            const SizedBox(height: 6),
+            _pathwayLine(
+              'Duration',
+              '${lastRun.durationMinutes.round()} min',
+            ),
+            if (lastRun.distanceMeters != null) ...[
+              const SizedBox(height: 6),
+              _pathwayLine(
+                'Distance',
+                '${(lastRun.distanceMeters! / 1000).toStringAsFixed(2)} km',
+              ),
+            ],
+            if (lastRun.paceMinPerKm != null) ...[
+              const SizedBox(height: 6),
+              _pathwayLine(
+                'Pace',
+                _formatPace(lastRun.paceMinPerKm!),
+              ),
+            ],
           ],
         ],
       ),
@@ -276,6 +338,16 @@ class _DataPageState extends State<DataPage> {
     const maxLen = 88;
     if (clean.length <= maxLen) return clean;
     return '${clean.substring(0, maxLen - 1).trimRight()}…';
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatPace(double minPerKm) {
+    final minutes = minPerKm.floor();
+    final seconds = ((minPerKm - minutes) * 60).round();
+    return '$minutes:${seconds.toString().padLeft(2, '0')} /km';
   }
 
   String _patternLabel(String? pattern) {

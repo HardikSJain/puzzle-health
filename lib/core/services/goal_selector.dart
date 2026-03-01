@@ -2,76 +2,127 @@ import 'dart:math';
 
 import '../models/current_focus.dart';
 import '../models/health_baseline.dart';
+import '../models/user_fitness_profile.dart';
 import 'health_analyzer.dart';
 import 'pathway_service.dart';
-import 'state_classifier.dart';
 
 class GoalSelector {
   static CurrentFocus selectWeeklyFocus({
     required DateTime weekStart,
-    required HealthBaseline baseline,
+    required UserFitnessProfile profile,
     CurrentFocus? previousFocus,
     double? previousCompletionRate,
   }) {
+    final baseline = profile.baseline;
     final baselineSteps = baseline.avgSteps.round();
-    final classification = StateClassifier.classify(baseline);
     final pathway = PathwayService.build(
-      state: classification.state,
+      state: profile.state,
       baseline: baseline,
     );
 
-    if (previousFocus == null || previousCompletionRate == null) {
+    final prefersRunGoal =
+        profile.hasRunningData &&
+        (profile.state.key == 'emerging_runner' ||
+            profile.state.key == 'regular_runner');
+
+    if (prefersRunGoal) {
+      final targetRuns = _selectRunFrequencyTarget(
+        currentWeeklyRuns: profile.weeklyRunCount,
+        previousFocus: previousFocus,
+        previousCompletionRate: previousCompletionRate,
+      );
+
       return CurrentFocus(
         weekStartIso: _dateKey(weekStart),
-        targetSteps: _roundedSteps(HealthAnalyzer.generateTargetSteps(baseline)),
-        reason: _baselineReason(baseline),
-        state: 'normal_progression',
+        targetSteps: max(2000, _roundedSteps((baselineSteps * 0.85).round())),
+        targetRunsPerWeek: targetRuns,
+        reason:
+            'Running data is stable. This week prioritizes repeatable run frequency.',
+        state: _stateFromCompletion(previousCompletionRate),
         baselineSteps: baselineSteps,
-        fitnessState: classification.state,
-        overlays: classification.overlays,
+        goalType: 'run_frequency',
+        fitnessState: profile.state,
+        overlays: profile.overlays,
         pathway: pathway,
       );
     }
 
+    // fallback to step goal
+    final stepTarget = _selectStepTarget(
+      baselineSteps: baselineSteps,
+      baseline: baseline,
+      previousFocus: previousFocus,
+      previousCompletionRate: previousCompletionRate,
+    );
+
+    return CurrentFocus(
+      weekStartIso: _dateKey(weekStart),
+      targetSteps: _roundedSteps(stepTarget),
+      reason: _baselineReason(baseline),
+      state: _stateFromCompletion(previousCompletionRate),
+      baselineSteps: baselineSteps,
+      goalType: 'steps',
+      fitnessState: profile.state,
+      overlays: profile.overlays,
+      pathway: pathway,
+    );
+  }
+
+  static int _selectStepTarget({
+    required int baselineSteps,
+    required HealthBaseline baseline,
+    required CurrentFocus? previousFocus,
+    required double? previousCompletionRate,
+  }) {
+    if (previousFocus == null || previousCompletionRate == null) {
+      return HealthAnalyzer.generateTargetSteps(baseline);
+    }
+
     int target = previousFocus.targetSteps;
-    String state = 'normal_progression';
-    String reason;
 
     if (previousCompletionRate >= 0.85) {
       target = (target * 1.08).round();
-      state = 'normal_progression';
-      reason = 'Strong adherence last week. Progressing target gradually.';
     } else if (previousCompletionRate <= 0.4) {
       final floor = max(1500, (baselineSteps * 0.95).round());
       final reduced = (target * 0.9).round();
       target = max(floor, min(reduced, target));
-      state = 'low_compliance';
-      reason = 'Last week was hard to sustain. Rebuilding with a more realistic target.';
     } else {
       target = max(target, (baselineSteps * 1.05).round());
-      state = 'consistency_rebuild';
-      reason = 'Partial adherence last week. Holding focus for consistency.';
     }
 
-    // Pattern-aware guardrails
     if ((baseline.isSporadic || baseline.isWeekendWarrior) &&
         previousCompletionRate < 0.85) {
       target = min(target, previousFocus.targetSteps);
-      reason =
-          'Pattern shows inconsistency. Prioritizing repeatability over stretch.';
-      state = 'consistency_rebuild';
     }
 
-    return CurrentFocus(
-      weekStartIso: _dateKey(weekStart),
-      targetSteps: _roundedSteps(target),
-      reason: reason,
-      state: state,
-      baselineSteps: baselineSteps,
-      fitnessState: classification.state,
-      overlays: classification.overlays,
-      pathway: pathway,
-    );
+    return target;
+  }
+
+  static int _selectRunFrequencyTarget({
+    required int currentWeeklyRuns,
+    required CurrentFocus? previousFocus,
+    required double? previousCompletionRate,
+  }) {
+    int currentTarget = previousFocus?.targetRunsPerWeek ?? max(2, currentWeeklyRuns);
+
+    if (previousCompletionRate == null) {
+      return currentTarget.clamp(2, 5);
+    }
+
+    if (previousCompletionRate >= 0.85) {
+      currentTarget += 1;
+    } else if (previousCompletionRate <= 0.4) {
+      currentTarget -= 1;
+    }
+
+    return currentTarget.clamp(2, 5);
+  }
+
+  static String _stateFromCompletion(double? completionRate) {
+    if (completionRate == null) return 'normal_progression';
+    if (completionRate <= 0.4) return 'low_compliance';
+    if (completionRate < 0.85) return 'consistency_rebuild';
+    return 'normal_progression';
   }
 
   static String _baselineReason(HealthBaseline baseline) {

@@ -57,6 +57,7 @@ class _HomePageState extends State<HomePage> {
       0,
       focus.targetSteps,
     );
+    final isRunGoal = focus.goalType == 'run_frequency';
 
     return Scaffold(
       backgroundColor: AppColor.backgroundColor,
@@ -69,15 +70,20 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTodayHeader(progress, remainingToday),
+                _buildTodayHeader(
+                  progress,
+                  remainingToday,
+                  isRunGoal: isRunGoal,
+                  targetRunsPerWeek: focus.targetRunsPerWeek,
+                ),
                 const SizedBox(height: 24),
                 _buildWeeklyGoalBlock(focus),
                 const SizedBox(height: 10),
                 _buildPathwayPeek(focus),
                 const SizedBox(height: 18),
-                _buildWeeklyChart(progress),
+                _buildWeeklyChart(progress, isRunGoal: isRunGoal),
                 const SizedBox(height: 20),
-                _buildWeekStatus(progress),
+                _buildWeekStatus(progress, isRunGoal: isRunGoal),
                 const SizedBox(height: 24),
                 _buildRatingPrompt(),
                 const SizedBox(height: 64),
@@ -89,11 +95,18 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTodayHeader(WeekProgress progress, int remainingToday) {
-    final progressRatio =
-        progress.targetSteps == 0
-            ? 0.0
-            : (progress.todaySteps / progress.targetSteps).clamp(0.0, 1.0);
+  Widget _buildTodayHeader(
+    WeekProgress progress,
+    int remainingToday, {
+    required bool isRunGoal,
+    required int? targetRunsPerWeek,
+  }) {
+    final progressRatio = isRunGoal
+        ? ((progress.runsCompleted) / ((targetRunsPerWeek ?? 2).clamp(1, 7)))
+              .clamp(0.0, 1.0)
+        : progress.targetSteps == 0
+        ? 0.0
+        : (progress.todaySteps / progress.targetSteps).clamp(0.0, 1.0);
 
     return Container(
       width: double.infinity,
@@ -116,7 +129,9 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '${_formatNumber(progress.todaySteps)} / ${_formatNumber(progress.targetSteps)} steps',
+            isRunGoal
+                ? '${progress.runsCompleted} / ${targetRunsPerWeek ?? 2} runs this week'
+                : '${_formatNumber(progress.todaySteps)} / ${_formatNumber(progress.targetSteps)} steps',
             style: const TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w700,
@@ -141,9 +156,13 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 10),
           Text(
-            progress.isOnTrackToday
-                ? 'Today complete.'
-                : '${_formatNumber(remainingToday)} steps to go today.',
+            isRunGoal
+                ? (progress.runsCompleted >= (targetRunsPerWeek ?? 2)
+                      ? 'Weekly run goal complete.'
+                      : '${(targetRunsPerWeek ?? 2) - progress.runsCompleted} runs to go this week.')
+                : (progress.isOnTrackToday
+                      ? 'Today complete.'
+                      : '${_formatNumber(remainingToday)} steps to go today.'),
             style: TextStyle(
               fontSize: 14,
               color: AppColor.primaryTextColor.withValues(alpha: 0.75),
@@ -159,7 +178,9 @@ class _HomePageState extends State<HomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Goal: ${_formatNumber(focus.targetSteps)} steps daily this week',
+          focus.goalType == 'run_frequency'
+              ? 'Goal: ${focus.targetRunsPerWeek ?? 2} runs this week'
+              : 'Goal: ${_formatNumber(focus.targetSteps)} steps daily this week',
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
@@ -228,7 +249,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildWeeklyChart(WeekProgress progress) {
+  Widget _buildWeeklyChart(WeekProgress progress, {required bool isRunGoal}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
@@ -250,19 +271,26 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 8),
           SizedBox(
             height: 90,
-            child: _WeeklyBars(
-              dailySteps: progress.dailySteps,
-              targetSteps: progress.targetSteps,
-            ),
+            child: isRunGoal
+                ? _WeeklyRunBars(
+                    dailyRuns: progress.dailyRuns,
+                    targetRunsPerWeek: progress.targetRunsPerWeek,
+                  )
+                : _WeeklyBars(
+                    dailySteps: progress.dailySteps,
+                    targetSteps: progress.targetSteps,
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWeekStatus(WeekProgress progress) {
+  Widget _buildWeekStatus(WeekProgress progress, {required bool isRunGoal}) {
     return Text(
-      '${progress.daysCompleted}/7 days on target',
+      isRunGoal
+          ? '${progress.runsCompleted}/${progress.targetRunsPerWeek} runs complete'
+          : '${progress.daysCompleted}/7 days on target',
       style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w600,
@@ -331,6 +359,76 @@ class _HomePageState extends State<HomePage> {
     return number.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
       (Match m) => '${m[1]},',
+    );
+  }
+}
+
+class _WeeklyRunBars extends StatelessWidget {
+  final List<int> dailyRuns;
+  final int targetRunsPerWeek;
+
+  const _WeeklyRunBars({
+    required this.dailyRuns,
+    required this.targetRunsPerWeek,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6);
+
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(7, (index) {
+              final runs = dailyRuns[index];
+              final ratio = runs > 0 ? 1.0 : 0.1;
+              final isToday = index == todayIndex;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: FractionallySizedBox(
+                    heightFactor: ratio,
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: runs > 0
+                            ? AppColor.accentTeal.withValues(alpha: 0.75)
+                            : isToday
+                            ? AppColor.primaryTextColor.withValues(alpha: 0.32)
+                            : AppColor.primaryTextColor.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: List.generate(
+            7,
+            (index) => Expanded(
+              child: Center(
+                child: Text(
+                  days[index],
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.secondaryColor.withValues(
+                      alpha: index == todayIndex ? 0.9 : 0.55,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

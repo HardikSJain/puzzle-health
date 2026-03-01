@@ -14,4 +14,5 @@ abstract class SharedPreferenceKeys {
   static const String activeWeeklyFocus = 'active_weekly_focus';
   static const String weeklyFocusHistory = 'weekly_focus_history';
   static const String weeklyGoalRatedGood = 'weekly_goal_rated_good';
+  static const String latestFitnessProfile = 'latest_fitness_profile';
 }

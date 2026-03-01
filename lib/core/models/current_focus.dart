@@ -10,9 +10,10 @@ class CurrentFocus {
   final String state; // normal_progression | low_compliance | consistency_rebuild
   final int baselineSteps;
   final double? completionRate; // last week's completion rate when archived
+  final int? targetRunsPerWeek;
 
   // Intelligence metadata
-  final String goalType; // steps | run_frequency (future-ready)
+  final String goalType; // steps | run_frequency
   final FitnessState fitnessState;
   final List<String> overlays;
   final Pathway? pathway;
@@ -24,6 +25,7 @@ class CurrentFocus {
     required this.state,
     required this.baselineSteps,
     this.completionRate,
+    this.targetRunsPerWeek,
     this.goalType = 'steps',
     this.fitnessState = FitnessState.inconsistentWalker,
     this.overlays = const [],
@@ -39,6 +41,7 @@ class CurrentFocus {
     'state': state,
     'baselineSteps': baselineSteps,
     'completionRate': completionRate,
+    'targetRunsPerWeek': targetRunsPerWeek,
     'goalType': goalType,
     'fitnessState': fitnessState.key,
     'overlays': overlays,
@@ -52,6 +55,7 @@ class CurrentFocus {
     state: json['state'] as String,
     baselineSteps: json['baselineSteps'] as int,
     completionRate: (json['completionRate'] as num?)?.toDouble(),
+    targetRunsPerWeek: json['targetRunsPerWeek'] as int?,
     goalType: json['goalType'] as String? ?? 'steps',
     fitnessState: FitnessStateX.fromKey(json['fitnessState'] as String?),
     overlays: (json['overlays'] as List<dynamic>?)?.cast<String>() ?? const [],

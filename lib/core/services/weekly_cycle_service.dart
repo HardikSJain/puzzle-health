@@ -1,5 +1,8 @@
 import '../models/current_focus.dart';
+import '../models/fitness_state.dart';
 import '../models/health_baseline.dart';
+import '../models/user_fitness_profile.dart';
+import 'fitness_profile_service.dart';
 import 'goal_selector.dart';
 import 'health_analyzer.dart';
 import 'health_service.dart';
@@ -7,7 +10,9 @@ import 'local_store_service.dart';
 import 'progress_service.dart';
 
 class WeeklyCycleService {
-  static Future<CurrentFocus> initializeOrRefresh({HealthBaseline? seedBaseline}) async {
+  static Future<CurrentFocus> initializeOrRefresh({
+    HealthBaseline? seedBaseline,
+  }) async {
     final now = DateTime.now();
     final currentWeekStart = _startOfWeek(now);
 
@@ -15,11 +20,13 @@ class WeeklyCycleService {
 
     // Fresh install / no goal yet
     if (active == null) {
-      final baseline = seedBaseline ?? await _computeLatestBaseline();
-      await LocalStoreService.saveBaseline(baseline);
+      final profile = await _computeLatestProfile(seedBaseline: seedBaseline);
+      await LocalStoreService.saveBaseline(profile.baseline);
+      await LocalStoreService.saveFitnessProfile(profile);
+
       final newFocus = GoalSelector.selectWeeklyFocus(
         weekStart: currentWeekStart,
-        baseline: baseline,
+        profile: profile,
       );
       await LocalStoreService.saveActiveFocus(newFocus);
       await LocalStoreService.clearWeeklyRating();
@@ -40,6 +47,7 @@ class WeeklyCycleService {
       state: active.state,
       baselineSteps: active.baselineSteps,
       completionRate: previousCompletionRate,
+      targetRunsPerWeek: active.targetRunsPerWeek,
       goalType: active.goalType,
       fitnessState: active.fitnessState,
       overlays: active.overlays,
@@ -47,12 +55,13 @@ class WeeklyCycleService {
     );
     await LocalStoreService.archiveFocus(archived);
 
-    final baseline = await _computeLatestBaseline();
-    await LocalStoreService.saveBaseline(baseline);
+    final profile = await _computeLatestProfile();
+    await LocalStoreService.saveBaseline(profile.baseline);
+    await LocalStoreService.saveFitnessProfile(profile);
 
     final next = GoalSelector.selectWeeklyFocus(
       weekStart: currentWeekStart,
-      baseline: baseline,
+      profile: profile,
       previousFocus: active,
       previousCompletionRate: previousCompletionRate,
     );
@@ -60,6 +69,56 @@ class WeeklyCycleService {
     await LocalStoreService.saveActiveFocus(next);
     await LocalStoreService.clearWeeklyRating();
     return next;
+  }
+
+  static Future<UserFitnessProfile> _computeLatestProfile({
+    HealthBaseline? seedBaseline,
+  }) async {
+    try {
+      final profile = await FitnessProfileService.buildLast30DaysProfile();
+      if (seedBaseline == null) return profile;
+
+      return UserFitnessProfile(
+        baseline: seedBaseline,
+        state: profile.state,
+        overlays: profile.overlays,
+        workouts30d: profile.workouts30d,
+        lastRun: profile.lastRun,
+        weeklyRunCount: profile.weeklyRunCount,
+        avgRunDistanceMeters: profile.avgRunDistanceMeters,
+        avgRunPaceMinPerKm: profile.avgRunPaceMinPerKm,
+        confidence: profile.confidence,
+      );
+    } catch (_) {
+      final baseline = seedBaseline ?? (await _computeLatestBaseline());
+      final fallback = LocalStoreService.getFitnessProfile();
+      if (fallback != null) {
+        return UserFitnessProfile(
+          baseline: baseline,
+          state: fallback.state,
+          overlays: fallback.overlays,
+          workouts30d: fallback.workouts30d,
+          lastRun: fallback.lastRun,
+          weeklyRunCount: fallback.weeklyRunCount,
+          avgRunDistanceMeters: fallback.avgRunDistanceMeters,
+          avgRunPaceMinPerKm: fallback.avgRunPaceMinPerKm,
+          confidence: fallback.confidence,
+        );
+      }
+
+      return UserFitnessProfile(
+        baseline: baseline,
+        state: LocalStoreService.getActiveFocus()?.fitnessState ??
+            FitnessState.inconsistentWalker,
+        overlays: const [],
+        workouts30d: const [],
+        lastRun: null,
+        weeklyRunCount: 0,
+        avgRunDistanceMeters: null,
+        avgRunPaceMinPerKm: null,
+        confidence: baseline.dataCompletenessScore,
+      );
+    }
   }
 
   static Future<HealthBaseline> _computeLatestBaseline() async {

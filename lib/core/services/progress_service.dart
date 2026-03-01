@@ -10,20 +10,35 @@ class WeekProgress {
   final int targetSteps;
   final List<int> dailySteps; // Monday..Sunday
 
+  // running goal support
+  final int runsCompleted;
+  final int targetRunsPerWeek;
+  final List<int> dailyRuns; // Monday..Sunday
+
   const WeekProgress({
     required this.daysCompleted,
     required this.totalDays,
     required this.todaySteps,
     required this.targetSteps,
     required this.dailySteps,
+    this.runsCompleted = 0,
+    this.targetRunsPerWeek = 0,
+    this.dailyRuns = const [0, 0, 0, 0, 0, 0, 0],
   });
 
-  bool get isOnTrackToday => todaySteps >= targetSteps;
+  bool get isOnTrackToday =>
+      targetSteps > 0 ? todaySteps >= targetSteps : runsCompleted >= targetRunsPerWeek;
   double get completionRate => totalDays == 0 ? 0 : daysCompleted / totalDays;
 }
 
 class ProgressService {
   static Future<WeekProgress> getWeekProgress(CurrentFocus focus) async {
+    return focus.goalType == 'run_frequency'
+        ? _getRunWeekProgress(focus)
+        : _getStepWeekProgress(focus);
+  }
+
+  static Future<WeekProgress> _getStepWeekProgress(CurrentFocus focus) async {
     final weekStart = DateTime.parse(focus.weekStartIso);
     final weekEnd = weekStart.add(const Duration(days: 7));
     final now = DateTime.now();
@@ -69,9 +84,49 @@ class ProgressService {
     );
   }
 
+  static Future<WeekProgress> _getRunWeekProgress(CurrentFocus focus) async {
+    final weekStart = DateTime.parse(focus.weekStartIso);
+    final weekEnd = weekStart.add(const Duration(days: 7));
+    final now = DateTime.now();
+    final end = now.isBefore(weekEnd) ? now : weekEnd;
+
+    final workouts = await HealthService.fetchData(
+      types: [HealthDataType.WORKOUT],
+      startTime: weekStart,
+      endTime: end,
+    );
+
+    final dailyRuns = List<int>.filled(7, 0);
+    for (final point in workouts) {
+      final text = point.value.toString().toLowerCase();
+      final isRun = text.contains('run');
+      if (!isRun) continue;
+
+      final idx = point.dateFrom.weekday - 1;
+      if (idx >= 0 && idx < 7) dailyRuns[idx] += 1;
+    }
+
+    final runsCompleted = dailyRuns.fold<int>(0, (a, b) => a + b);
+    final targetRuns = focus.targetRunsPerWeek ?? 2;
+
+    return WeekProgress(
+      daysCompleted: runsCompleted,
+      totalDays: targetRuns,
+      todaySteps: 0,
+      targetSteps: focus.targetSteps,
+      dailySteps: const [0, 0, 0, 0, 0, 0, 0],
+      runsCompleted: runsCompleted,
+      targetRunsPerWeek: targetRuns,
+      dailyRuns: dailyRuns,
+    );
+  }
+
   static Future<double> getCompletionRate(CurrentFocus focus) async {
     final progress = await getWeekProgress(focus);
-    // Weekly adherence should use 7-day denominator for adaptation.
+    if (focus.goalType == 'run_frequency') {
+      final target = (focus.targetRunsPerWeek ?? 2).clamp(1, 7);
+      return (progress.runsCompleted / target).clamp(0.0, 1.0);
+    }
     return progress.daysCompleted / 7.0;
   }
 
