@@ -499,20 +499,34 @@ class _HomePageState extends State<HomePage>
         const SizedBox(height: 8),
         Row(
           children: [
-            OutlinedButton(
-              onPressed: () async {
-                await LocalStoreService.saveWeeklyRating(true);
-                if (mounted) setState(() {});
-              },
-              child: const Text('👍'),
+            Semantics(
+              button: true,
+              label: 'Mark goal as right for this week',
+              child: Tooltip(
+                message: 'Goal felt right',
+                child: OutlinedButton(
+                  onPressed: () async {
+                    await LocalStoreService.saveWeeklyRating(true);
+                    if (mounted) setState(() {});
+                  },
+                  child: const Text('👍'),
+                ),
+              ),
             ),
             const SizedBox(width: 8),
-            OutlinedButton(
-              onPressed: () async {
-                await LocalStoreService.saveWeeklyRating(false);
-                if (mounted) setState(() {});
-              },
-              child: const Text('👎'),
+            Semantics(
+              button: true,
+              label: 'Mark goal as not right for this week',
+              child: Tooltip(
+                message: 'Goal felt off',
+                child: OutlinedButton(
+                  onPressed: () async {
+                    await LocalStoreService.saveWeeklyRating(false);
+                    if (mounted) setState(() {});
+                  },
+                  child: const Text('👎'),
+                ),
+              ),
             ),
           ],
         ),
