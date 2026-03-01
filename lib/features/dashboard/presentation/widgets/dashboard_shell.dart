@@ -96,30 +96,33 @@ class _BottomNavigationView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const barRadius = 26.0;
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: width, minHeight: height),
-      child: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(barRadius),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(barRadius),
-                color: color,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  width: 0.5,
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: width, minHeight: height),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(barRadius),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(barRadius),
+                  color: color,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    width: 0.5,
+                  ),
+                  boxShadow: boxShadow != null ? [boxShadow!] : null,
                 ),
-                boxShadow: boxShadow != null ? [boxShadow!] : null,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: children,
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: children,
+                ),
               ),
             ),
           ),
