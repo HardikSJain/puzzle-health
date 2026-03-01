@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../dashboard/presentation/widgets/dashboard_shell.dart';
 import '../../../../core/models/current_focus.dart';
 import '../../../../core/models/fitness_state.dart';
 import '../../../../core/models/user_fitness_profile.dart';
@@ -60,11 +61,14 @@ class _DataPageState extends State<DataPage> {
     return Scaffold(
       backgroundColor: AppColor.backgroundColor,
       body: SafeArea(
+        bottom: false,
         child: RefreshIndicator(
           onRefresh: _loadTrend,
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(28, 32, 28, 48),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.fromLTRB(28, 32, 28, DashboardShell.bottomInsetForContent),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

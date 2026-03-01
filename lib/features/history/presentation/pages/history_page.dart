@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../dashboard/presentation/widgets/dashboard_shell.dart';
 import '../../../../core/models/fitness_state.dart';
 import '../../../../core/services/local_store_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
@@ -16,8 +17,10 @@ class HistoryPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColor.backgroundColor,
       body: SafeArea(
+        bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(28, 32, 28, 48),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(28, 32, 28, DashboardShell.bottomInsetForContent),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

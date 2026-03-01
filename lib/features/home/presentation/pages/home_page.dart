@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../dashboard/presentation/widgets/dashboard_shell.dart';
 import '../../../../core/models/current_focus.dart';
 import '../../../../core/models/fitness_state.dart';
 import '../../../../core/services/local_store_service.dart';
@@ -89,11 +90,14 @@ class _HomePageState extends State<HomePage>
     return Scaffold(
       backgroundColor: AppColor.backgroundColor,
       body: SafeArea(
+        bottom: false,
         child: RefreshIndicator(
           onRefresh: _load,
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, DashboardShell.bottomInsetForContent),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
