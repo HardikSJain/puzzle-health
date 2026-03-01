@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import '../../../../core/models/current_focus.dart';
 import '../../../../core/models/fitness_state.dart';
@@ -24,6 +25,7 @@ class _HomePageState extends State<HomePage>
   WeekProgress? _progress;
   bool _loading = true;
   bool _heroEntered = false;
+  final RefreshController _refreshController = RefreshController();
   late final AnimationController _gradientController;
   late final Animation<double> _gradientAnimation;
 
@@ -42,12 +44,15 @@ class _HomePageState extends State<HomePage>
 
   @override
   void dispose() {
+    _refreshController.dispose();
     _gradientController.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  Future<void> _load({bool showLoading = true}) async {
+    if (showLoading) {
+      setState(() => _loading = true);
+    }
 
     final focus = await WeeklyCycleService.initializeOrRefresh();
     final progress = await ProgressService.getWeekProgress(focus);
@@ -66,6 +71,19 @@ class _HomePageState extends State<HomePage>
       setState(() => _heroEntered = true);
       _gradientController.forward();
     });
+  }
+
+  Future<void> _onRefresh() async {
+    try {
+      await _load(showLoading: false);
+      if (mounted) {
+        _refreshController.refreshCompleted();
+      }
+    } catch (_) {
+      if (mounted) {
+        _refreshController.refreshFailed();
+      }
+    }
   }
 
   @override
@@ -91,13 +109,24 @@ class _HomePageState extends State<HomePage>
       backgroundColor: AppColor.backgroundColor,
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _load,
+        child: SmartRefresher(
+          controller: _refreshController,
+          enablePullDown: true,
+          header: const WaterDropHeader(
+            complete: SizedBox.shrink(),
+            waterDropColor: AppColor.accentTeal,
+          ),
+          onRefresh: _onRefresh,
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
             ),
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, DashboardShell.bottomInsetForContent),
+            padding: const EdgeInsets.fromLTRB(
+              24,
+              24,
+              24,
+              DashboardShell.bottomInsetForContent,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

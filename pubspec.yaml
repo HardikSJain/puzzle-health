@@ -44,6 +44,7 @@ dependencies:
   health: ^13.3.0
   permission_handler: ^11.3.1
   url_launcher: ^6.2.5
+  pull_to_refresh: ^2.0.0
 
 
 dev_dependencies:
