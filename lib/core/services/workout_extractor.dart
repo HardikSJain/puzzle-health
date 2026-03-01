@@ -48,12 +48,12 @@ class WorkoutExtractor {
   }
 
   static double? _extractDistanceMeters(String text) {
-    final meterMatch = RegExp(r'(\d+(?:\.\d+)?)\s*m').firstMatch(text);
+    final meterMatch = RegExp(r'(\d+(?:\.\d+)?)\s*m\b').firstMatch(text);
     if (meterMatch != null) {
       return double.tryParse(meterMatch.group(1)!);
     }
 
-    final kmMatch = RegExp(r'(\d+(?:\.\d+)?)\s*km').firstMatch(text);
+    final kmMatch = RegExp(r'(\d+(?:\.\d+)?)\s*km\b').firstMatch(text);
     if (kmMatch != null) {
       final km = double.tryParse(kmMatch.group(1)!);
       return km != null ? km * 1000 : null;
