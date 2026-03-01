@@ -62,16 +62,16 @@ class _GlassBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(30),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            color: AppColor.cardColor.withValues(alpha: 0.68),
+            borderRadius: BorderRadius.circular(30),
+            color: AppColor.cardColor.withValues(alpha: 0.56),
             border: Border.all(
-              color: AppColor.primaryTextColor.withValues(alpha: 0.12),
+              color: AppColor.primaryTextColor.withValues(alpha: 0.14),
             ),
           ),
           child: Row(
@@ -139,55 +139,46 @@ class _NavItem extends StatelessWidget {
             onTap(index);
           },
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 240),
+            duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: isSelected
-                  ? AppColor.primaryTextColor.withValues(alpha: 0.14)
-                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.transparent,
             ),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: ScaleTransition(scale: animation, child: child),
-                );
-              },
-              child: Row(
-                key: ValueKey<bool>(isSelected),
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColor.primaryTextColor.withValues(alpha: 0.18)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Icon(
                     isSelected ? activeIcon : icon,
                     size: 20,
                     color: isSelected
                         ? AppColor.primaryTextColor
-                        : AppColor.primaryTextColor.withValues(alpha: 0.55),
+                        : AppColor.primaryTextColor.withValues(alpha: 0.58),
                   ),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 240),
-                    curve: Curves.easeOutCubic,
-                    child: isSelected
-                        ? Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: Text(
-                              label,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColor.primaryTextColor,
-                              ),
-                            ),
-                          )
-                        : const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected
+                        ? AppColor.primaryTextColor
+                        : AppColor.primaryTextColor.withValues(alpha: 0.58),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

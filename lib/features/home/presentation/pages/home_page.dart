@@ -72,7 +72,7 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildTodayHeader(
+                _buildCommandHero(
                   progress,
                   remainingToday,
                   isRunGoal: isRunGoal,
@@ -99,7 +99,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTodayHeader(
+  Widget _buildCommandHero(
     WeekProgress progress,
     int remainingToday, {
     required bool isRunGoal,
@@ -112,61 +112,87 @@ class _HomePageState extends State<HomePage> {
         ? 0.0
         : (progress.todaySteps / progress.targetSteps).clamp(0.0, 1.0);
 
-    return GlassSurface(
-      radius: 14,
-      alpha: 0.05,
+    final subtitle = isRunGoal
+        ? (progress.runsCompleted >= (targetRunsPerWeek ?? 2)
+              ? 'Weekly run goal complete.'
+              : '${(targetRunsPerWeek ?? 2) - progress.runsCompleted} runs to go this week.')
+        : (progress.isOnTrackToday
+              ? 'Today complete.'
+              : '${_formatNumber(remainingToday)} steps to go today.');
+
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColor.accentTeal.withValues(alpha: 0.28),
+            AppColor.cardColor.withValues(alpha: 0.78),
+          ],
+        ),
+        border: Border.all(
+          color: AppColor.primaryTextColor.withValues(alpha: 0.1),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Today',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColor.secondaryColor.withValues(alpha: 0.75),
-              letterSpacing: 0.3,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColor.primaryTextColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Today',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColor.primaryTextColor.withValues(alpha: 0.92),
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             isRunGoal
                 ? '${progress.runsCompleted} / ${targetRunsPerWeek ?? 2} runs this week'
                 : '${_formatNumber(progress.todaySteps)} / ${_formatNumber(progress.targetSteps)} steps',
             style: const TextStyle(
-              fontSize: 30,
+              fontSize: 32,
               fontWeight: FontWeight.w700,
               color: AppColor.primaryTextColor,
               letterSpacing: -0.7,
-              height: 1.15,
+              height: 1.1,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
-              minHeight: 6,
+              minHeight: 7,
               value: progressRatio,
-              backgroundColor: AppColor.primaryTextColor.withValues(alpha: 0.12),
+              backgroundColor: AppColor.primaryTextColor.withValues(alpha: 0.15),
               valueColor: AlwaysStoppedAnimation<Color>(
                 progress.isOnTrackToday
                     ? AppColor.accentTeal
-                    : AppColor.primaryTextColor.withValues(alpha: 0.85),
+                    : AppColor.primaryTextColor.withValues(alpha: 0.9),
               ),
             ),
           ),
           const SizedBox(height: 10),
           Text(
-            isRunGoal
-                ? (progress.runsCompleted >= (targetRunsPerWeek ?? 2)
-                      ? 'Weekly run goal complete.'
-                      : '${(targetRunsPerWeek ?? 2) - progress.runsCompleted} runs to go this week.')
-                : (progress.isOnTrackToday
-                      ? 'Today complete.'
-                      : '${_formatNumber(remainingToday)} steps to go today.'),
+            subtitle,
             style: TextStyle(
               fontSize: 14,
-              color: AppColor.primaryTextColor.withValues(alpha: 0.75),
+              color: AppColor.primaryTextColor.withValues(alpha: 0.82),
             ),
           ),
         ],
