@@ -67,45 +67,52 @@ class HistoryPage extends StatelessWidget {
                       alpha: 0.04,
                       padding: const EdgeInsets.all(16),
                       child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.goalType == 'run_frequency'
-                              ? '${item.targetRunsPerWeek ?? 2} runs weekly goal'
-                              : '${item.targetSteps} steps daily goal',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppColor.primaryTextColor,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.goalType == 'run_frequency'
+                                ? '${item.targetRunsPerWeek ?? 2} runs weekly goal'
+                                : '${item.targetSteps} steps daily goal',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppColor.primaryTextColor,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Week of ${item.weekStartIso}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColor.secondaryColor.withValues(alpha: 0.7),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Week of ${item.weekStartIso}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColor.secondaryColor.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'State: ${item.fitnessState.label}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColor.secondaryColor.withValues(alpha: 0.75),
+                          const SizedBox(height: 6),
+                          Text(
+                            'State: ${item.fitnessState.label}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColor.secondaryColor.withValues(
+                                alpha: 0.75,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.completionRate != null
-                              ? '${(item.completionRate! * 100).round()}% on target'
-                              : 'On-target rate: n/a',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColor.primaryTextColor.withValues(alpha: 0.8),
+                          const SizedBox(height: 4),
+                          Text(
+                            item.completionRate != null
+                                ? '${(item.completionRate! * 100).round()}% on target'
+                                : 'On-target rate: n/a',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColor.primaryTextColor.withValues(
+                                alpha: 0.8,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
