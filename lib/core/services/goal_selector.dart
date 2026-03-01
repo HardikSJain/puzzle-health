@@ -32,6 +32,11 @@ class GoalSelector {
         previousFocus: previousFocus,
         previousCompletionRate: previousCompletionRate,
       );
+      final changeSummary = _buildRunChangeSummary(
+        previousFocus: previousFocus,
+        previousCompletionRate: previousCompletionRate,
+        newTargetRuns: targetRuns,
+      );
 
       return CurrentFocus(
         weekStartIso: _dateKey(weekStart),
@@ -45,6 +50,7 @@ class GoalSelector {
         fitnessState: profile.state,
         overlays: profile.overlays,
         pathway: pathway,
+        changeSummary: changeSummary,
       );
     }
 
@@ -55,10 +61,16 @@ class GoalSelector {
       previousFocus: previousFocus,
       previousCompletionRate: previousCompletionRate,
     );
+    final roundedStepTarget = _roundedSteps(stepTarget);
+    final changeSummary = _buildStepChangeSummary(
+      previousFocus: previousFocus,
+      previousCompletionRate: previousCompletionRate,
+      newTargetSteps: roundedStepTarget,
+    );
 
     return CurrentFocus(
       weekStartIso: _dateKey(weekStart),
-      targetSteps: _roundedSteps(stepTarget),
+      targetSteps: roundedStepTarget,
       reason: _baselineReason(baseline),
       state: _stateFromCompletion(previousCompletionRate),
       baselineSteps: baselineSteps,
@@ -66,6 +78,7 @@ class GoalSelector {
       fitnessState: profile.state,
       overlays: profile.overlays,
       pathway: pathway,
+      changeSummary: changeSummary,
     );
   }
 
@@ -117,6 +130,48 @@ class GoalSelector {
     }
 
     return currentTarget.clamp(2, 5);
+  }
+
+  static String _buildStepChangeSummary({
+    required CurrentFocus? previousFocus,
+    required double? previousCompletionRate,
+    required int newTargetSteps,
+  }) {
+    if (previousFocus == null || previousCompletionRate == null) {
+      return 'Initial goal from your 30-day baseline.';
+    }
+
+    final oldTarget = previousFocus.targetSteps;
+    final diff = newTargetSteps - oldTarget;
+
+    if (diff > 0) {
+      return 'Goal increased by ${_roundedSteps(diff)} steps after strong adherence last week.';
+    }
+    if (diff < 0) {
+      return 'Goal reduced by ${_roundedSteps(diff.abs())} steps to improve consistency this week.';
+    }
+    return 'Goal held steady to build consistency before progressing.';
+  }
+
+  static String _buildRunChangeSummary({
+    required CurrentFocus? previousFocus,
+    required double? previousCompletionRate,
+    required int newTargetRuns,
+  }) {
+    if (previousFocus == null || previousCompletionRate == null) {
+      return 'Initial run-frequency goal from your recent activity profile.';
+    }
+
+    final oldTarget = previousFocus.targetRunsPerWeek ?? newTargetRuns;
+    final diff = newTargetRuns - oldTarget;
+
+    if (diff > 0) {
+      return 'Run target increased by $diff after strong adherence last week.';
+    }
+    if (diff < 0) {
+      return 'Run target reduced by ${diff.abs()} to keep progression realistic.';
+    }
+    return 'Run target held steady to improve repeatability this week.';
   }
 
   static String _stateFromCompletion(double? completionRate) {

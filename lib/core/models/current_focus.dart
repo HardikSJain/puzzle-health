@@ -17,6 +17,7 @@ class CurrentFocus {
   final FitnessState fitnessState;
   final List<String> overlays;
   final Pathway? pathway;
+  final String? changeSummary;
 
   const CurrentFocus({
     required this.weekStartIso,
@@ -30,6 +31,7 @@ class CurrentFocus {
     this.fitnessState = FitnessState.inconsistentWalker,
     this.overlays = const [],
     this.pathway,
+    this.changeSummary,
   });
 
   DateTime get weekStart => DateTime.parse(weekStartIso);
@@ -46,6 +48,7 @@ class CurrentFocus {
     'fitnessState': fitnessState.key,
     'overlays': overlays,
     'pathway': pathway?.toJson(),
+    'changeSummary': changeSummary,
   };
 
   factory CurrentFocus.fromJson(Map<String, dynamic> json) => CurrentFocus(
@@ -62,6 +65,7 @@ class CurrentFocus {
     pathway: json['pathway'] != null
         ? Pathway.fromJson(json['pathway'] as Map<String, dynamic>)
         : null,
+    changeSummary: json['changeSummary'] as String?,
   );
 
   String encode() => jsonEncode(toJson());

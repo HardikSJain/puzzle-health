@@ -52,6 +52,7 @@ class WeeklyCycleService {
       fitnessState: active.fitnessState,
       overlays: active.overlays,
       pathway: active.pathway,
+      changeSummary: active.changeSummary,
     );
     await LocalStoreService.archiveFocus(archived);
 

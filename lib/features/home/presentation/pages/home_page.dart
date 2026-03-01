@@ -81,6 +81,8 @@ class _HomePageState extends State<HomePage> {
                 _buildWeeklyGoalBlock(focus),
                 const SizedBox(height: 10),
                 _buildPathwayPeek(focus),
+                const SizedBox(height: 10),
+                _buildGoalChangeCard(focus),
                 const SizedBox(height: 18),
                 _buildWeeklyChart(progress, isRunGoal: isRunGoal),
                 const SizedBox(height: 20),
@@ -239,6 +241,44 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 6),
           Text(
             pathway.next,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColor.primaryTextColor.withValues(alpha: 0.75),
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGoalChangeCard(CurrentFocus focus) {
+    final summary = focus.changeSummary;
+    if (summary == null || summary.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColor.primaryTextColor.withValues(alpha: 0.025),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Why this goal changed',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColor.secondaryColor.withValues(alpha: 0.72),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            summary,
             style: TextStyle(
               fontSize: 14,
               color: AppColor.primaryTextColor.withValues(alpha: 0.75),
