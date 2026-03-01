@@ -347,8 +347,9 @@ class _DataPageState extends State<DataPage> {
   }
 
   String _formatPace(double minPerKm) {
-    final minutes = minPerKm.floor();
-    final seconds = ((minPerKm - minutes) * 60).round();
+    final totalSeconds = (minPerKm * 60).round();
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')} /km';
   }
 
