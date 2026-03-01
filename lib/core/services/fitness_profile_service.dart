@@ -1,5 +1,6 @@
 import '../models/health_baseline.dart';
 import '../models/user_fitness_profile.dart';
+import '../models/workout_session.dart';
 import 'health_analyzer.dart';
 import 'health_service.dart';
 import 'state_classifier.dart';
@@ -55,7 +56,10 @@ class FitnessProfileService {
     );
   }
 
-  static int _confidenceScore(HealthBaseline baseline, List<dynamic> runs) {
+  static int _confidenceScore(
+    HealthBaseline baseline,
+    List<WorkoutSession> runs,
+  ) {
     int score = baseline.dataCompletenessScore;
     if (runs.isNotEmpty) score += 10;
     return score.clamp(0, 100);
