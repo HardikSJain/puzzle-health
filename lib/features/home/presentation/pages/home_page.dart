@@ -25,6 +25,7 @@ class _HomePageState extends State<HomePage>
   WeekProgress? _progress;
   bool _loading = true;
   bool _heroEntered = false;
+  String? _loadError;
   int _loadVersion = 0;
   final RefreshController _refreshController = RefreshController();
   late final AnimationController _gradientController;
@@ -50,53 +51,95 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  Future<void> _load({bool showLoading = true}) async {
+  Future<bool> _load({bool showLoading = true}) async {
     final int requestVersion = ++_loadVersion;
 
     if (showLoading) {
       setState(() => _loading = true);
     }
 
-    final focus = await WeeklyCycleService.initializeOrRefresh();
-    final progress = await ProgressService.getWeekProgress(focus);
+    try {
+      final focus = await WeeklyCycleService.initializeOrRefresh();
+      final progress = await ProgressService.getWeekProgress(focus);
 
-    if (!mounted || requestVersion != _loadVersion) return;
+      if (!mounted || requestVersion != _loadVersion) return false;
 
-    _gradientController.reset();
-    setState(() {
-      _focus = focus;
-      _progress = progress;
-      _loading = false;
-      _heroEntered = false;
-    });
+      _gradientController.reset();
+      setState(() {
+        _focus = focus;
+        _progress = progress;
+        _loading = false;
+        _heroEntered = false;
+        _loadError = null;
+      });
 
-    Future.delayed(const Duration(milliseconds: 120), () {
-      if (!mounted || requestVersion != _loadVersion) return;
-      setState(() => _heroEntered = true);
-      _gradientController.forward();
-    });
+      Future.delayed(const Duration(milliseconds: 120), () {
+        if (!mounted || requestVersion != _loadVersion) return;
+        setState(() => _heroEntered = true);
+        _gradientController.forward();
+      });
+      return true;
+    } catch (_) {
+      if (!mounted || requestVersion != _loadVersion) return false;
+
+      _gradientController.reset();
+      setState(() {
+        _loading = false;
+        _heroEntered = false;
+        _loadError = 'Could not refresh your data. Pull to refresh or retry.';
+      });
+      return false;
+    }
   }
 
   Future<void> _onRefresh() async {
-    try {
-      await _load(showLoading: false);
-      if (mounted) {
-        _refreshController.refreshCompleted();
-      }
-    } catch (_) {
-      if (mounted) {
-        _refreshController.refreshFailed();
-      }
+    final ok = await _load(showLoading: false);
+    if (!mounted) return;
+    if (ok) {
+      _refreshController.refreshCompleted();
+    } else {
+      _refreshController.refreshFailed();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading || _focus == null || _progress == null) {
+    if (_loading) {
       return const Scaffold(
         backgroundColor: AppColor.backgroundColor,
         body: SafeArea(
           child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+      );
+    }
+
+    if (_focus == null || _progress == null) {
+      return Scaffold(
+        backgroundColor: AppColor.backgroundColor,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _loadError ?? 'Could not load your fitness data.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColor.primaryTextColor.withValues(alpha: 0.8),
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: () => _load(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       );
     }
