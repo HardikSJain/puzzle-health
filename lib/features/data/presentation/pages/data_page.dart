@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/local_store_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
 
 /// Data Page - Read-only rolling baselines
@@ -9,6 +10,9 @@ class DataPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final baseline = LocalStoreService.getBaseline();
+    final focus = LocalStoreService.getActiveFocus();
+
     return Scaffold(
       backgroundColor: AppColor.backgroundColor,
       body: SafeArea(
@@ -17,8 +21,7 @@ class DataPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              Text(
+              const Text(
                 'Data',
                 style: TextStyle(
                   fontSize: 32,
@@ -28,9 +31,7 @@ class DataPage extends StatelessWidget {
                   letterSpacing: -0.6,
                 ),
               ),
-
               const SizedBox(height: 8),
-
               Text(
                 'Rolling baselines and trends',
                 style: TextStyle(
@@ -40,22 +41,19 @@ class DataPage extends StatelessWidget {
                   letterSpacing: 0.1,
                 ),
               ),
-
               const SizedBox(height: 48),
-
-              // TODO: Replace with actual baseline data
               _buildBaselineCard(
                 'Current baseline',
-                '2,000 steps/day',
+                baseline != null
+                    ? '${baseline.avgSteps.round()} steps/day'
+                    : 'No baseline yet',
                 'Last 30 days',
               ),
-
               const SizedBox(height: 16),
-
               _buildBaselineCard(
                 'Pattern',
-                'Weekday-focused',
-                'Weekend activity drops sharply',
+                baseline?.activityPattern ?? 'unknown',
+                focus?.reason ?? 'No active focus yet.',
               ),
             ],
           ),
@@ -87,7 +85,7 @@ class DataPage extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
               color: AppColor.primaryTextColor,

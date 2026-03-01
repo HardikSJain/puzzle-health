@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/models/health_baseline.dart';
 import '../../../../core/models/health_insight.dart';
 import '../../../../core/services/insight_generator.dart';
+import '../../../../core/services/weekly_cycle_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../routes/routes.dart';
@@ -97,6 +98,7 @@ class _OnboardingInsightsPageState extends State<OnboardingInsightsPage>
 
   Future<void> _completeOnboarding() async {
     HapticFeedback.mediumImpact();
+    await WeeklyCycleService.initializeOrRefresh(seedBaseline: widget.baseline);
     await AppRouter.completeOnboarding();
     if (mounted) {
       context.go('${RoutesConstants.dashboard}/${RoutesConstants.home}');

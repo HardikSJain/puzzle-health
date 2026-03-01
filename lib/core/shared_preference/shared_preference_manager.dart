@@ -41,6 +41,11 @@ class SharedPreferenceManager {
     return _prefsInstance?.setInt(key, value) ?? Future.value(false);
   }
 
+  // Remove key
+  static Future<bool> remove(String key) async {
+    return _prefsInstance?.remove(key) ?? Future.value(false);
+  }
+
   // Clear all data (for logout)
   static Future<bool> clearAll() async {
     return _prefsInstance?.clear() ?? Future.value(false);
