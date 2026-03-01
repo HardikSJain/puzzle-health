@@ -146,10 +146,9 @@ class _HomePageState extends State<HomePage>
 
     final focus = _focus!;
     final progress = _progress!;
-    final remainingToday = (focus.targetSteps - progress.todaySteps).clamp(
-      0,
-      focus.targetSteps,
-    );
+    final remainingToday = (focus.targetSteps - progress.todaySteps)
+        .clamp(0, focus.targetSteps)
+        .toInt();
     final isRunGoal = focus.goalType == 'run_frequency';
 
     return Scaffold(
@@ -213,11 +212,15 @@ class _HomePageState extends State<HomePage>
     required bool heroEntered,
   }) {
     final progressRatio = isRunGoal
-        ? ((progress.runsCompleted) / ((targetRunsPerWeek ?? 2).clamp(1, 7)))
+        ? ((progress.runsCompleted) /
+                  ((targetRunsPerWeek ?? 2).clamp(1, 7).toDouble()))
               .clamp(0.0, 1.0)
+              .toDouble()
         : progress.targetSteps == 0
         ? 0.0
-        : (progress.todaySteps / progress.targetSteps).clamp(0.0, 1.0);
+        : (progress.todaySteps / progress.targetSteps)
+              .clamp(0.0, 1.0)
+              .toDouble();
 
     final subtitle = isRunGoal
         ? (progress.runsCompleted >= (targetRunsPerWeek ?? 2)
@@ -605,7 +608,7 @@ class _WeeklyRunBars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6);
+    final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6).toInt();
 
     return Column(
       children: [
@@ -678,8 +681,8 @@ class _WeeklyBars extends StatelessWidget {
     ].reduce((a, b) => a > b ? a : b);
     final targetRatio = maxValue == 0
         ? 0.0
-        : (targetSteps / maxValue).clamp(0.0, 1.0);
-    final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6);
+        : (targetSteps / maxValue).clamp(0.0, 1.0).toDouble();
+    final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6).toInt();
 
     return Column(
       children: [
@@ -699,7 +702,7 @@ class _WeeklyBars extends StatelessWidget {
                   final value = dailySteps[index];
                   final ratio = maxValue == 0
                       ? 0.0
-                      : (value / maxValue).clamp(0.0, 1.0);
+                      : (value / maxValue).clamp(0.0, 1.0).toDouble();
                   final isToday = index == todayIndex;
                   final isComplete = value >= targetSteps;
 
