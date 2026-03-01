@@ -6,6 +6,7 @@ import '../../../../core/services/local_store_service.dart';
 import '../../../../core/services/progress_service.dart';
 import '../../../../core/services/weekly_cycle_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
+import '../../../../core/widgets/glass_surface.dart';
 
 /// Home Page - Command center
 /// Primary question: What should I do today, and how close am I?
@@ -111,13 +112,10 @@ class _HomePageState extends State<HomePage> {
         ? 0.0
         : (progress.todaySteps / progress.targetSteps).clamp(0.0, 1.0);
 
-    return Container(
-      width: double.infinity,
+    return GlassSurface(
+      radius: 14,
+      alpha: 0.05,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-      decoration: BoxDecoration(
-        color: AppColor.primaryTextColor.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(14),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -220,13 +218,10 @@ class _HomePageState extends State<HomePage> {
     final pathway = focus.pathway;
     if (pathway == null) return const SizedBox.shrink();
 
-    return Container(
-      width: double.infinity,
+    return GlassSurface(
+      radius: 10,
+      alpha: 0.035,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColor.primaryTextColor.withValues(alpha: 0.025),
-        borderRadius: BorderRadius.circular(10),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -258,13 +253,10 @@ class _HomePageState extends State<HomePage> {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      width: double.infinity,
+    return GlassSurface(
+      radius: 10,
+      alpha: 0.035,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColor.primaryTextColor.withValues(alpha: 0.025),
-        borderRadius: BorderRadius.circular(10),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -291,13 +283,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildWeeklyChart(WeekProgress progress, {required bool isRunGoal}) {
-    return Container(
-      width: double.infinity,
+    return GlassSurface(
+      radius: 12,
+      alpha: 0.04,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-      decoration: BoxDecoration(
-        color: AppColor.primaryTextColor.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

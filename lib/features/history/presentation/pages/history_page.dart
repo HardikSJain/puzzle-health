@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/models/fitness_state.dart';
 import '../../../../core/services/local_store_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
+import '../../../../core/widgets/glass_surface.dart';
 
 /// History Page - Past focuses and outcomes
 class HistoryPage extends StatelessWidget {
@@ -59,14 +60,13 @@ class HistoryPage extends StatelessWidget {
                 )
               else
                 ...history.map(
-                  (item) => Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColor.primaryTextColor.withValues(alpha: 0.03),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
+                  (item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GlassSurface(
+                      radius: 10,
+                      alpha: 0.04,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(

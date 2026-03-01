@@ -6,6 +6,7 @@ import '../../../../core/models/user_fitness_profile.dart';
 import '../../../../core/services/local_store_service.dart';
 import '../../../../core/services/progress_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
+import '../../../../core/widgets/glass_surface.dart';
 
 /// Data Page - Read-only rolling baselines
 /// Confidence repair when users doubt the system
@@ -117,13 +118,10 @@ class _DataPageState extends State<DataPage> {
 
   Widget _buildPathwayCard(CurrentFocus? focus) {
     final pathway = focus?.pathway;
-    return Container(
-      width: double.infinity,
+    return GlassSurface(
+      radius: 12,
+      alpha: 0.04,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColor.primaryTextColor.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -160,13 +158,10 @@ class _DataPageState extends State<DataPage> {
   Widget _buildLastRunCard(UserFitnessProfile? profile) {
     final lastRun = profile?.lastRun;
 
-    return Container(
-      width: double.infinity,
+    return GlassSurface(
+      radius: 12,
+      alpha: 0.04,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColor.primaryTextColor.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -218,13 +213,10 @@ class _DataPageState extends State<DataPage> {
   Widget _buildTrendCard() {
     final latest = _adherence.isNotEmpty ? (_adherence.last * 100).round() : null;
 
-    return Container(
-      width: double.infinity,
+    return GlassSurface(
+      radius: 12,
+      alpha: 0.04,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColor.primaryTextColor.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -289,13 +281,10 @@ class _DataPageState extends State<DataPage> {
   }
 
   Widget _buildBaselineCard(String label, String value, String subtitle) {
-    return Container(
-      width: double.infinity,
+    return GlassSurface(
+      radius: 12,
+      alpha: 0.04,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColor.primaryTextColor.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
