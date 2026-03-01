@@ -20,6 +20,9 @@ class DashboardShell extends StatelessWidget {
   /// floating nav bar when scrolled to end. Content can scroll behind the bar.
   static const double bottomInsetForContent = 100;
 
+  static const Duration navAnimDuration = Duration(milliseconds: 300);
+  static const Curve navAnimCurve = Curves.easeOutCubic;
+
   @override
   Widget build(BuildContext context) {
     final selectedIndex = _calculateSelectedIndex(context);
@@ -100,7 +103,7 @@ class _BottomNavigationView extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(barRadius),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 56, sigmaY: 56),
+            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
               decoration: BoxDecoration(
@@ -147,8 +150,8 @@ class _BottomNavigationButton extends StatelessWidget {
     this.onSameTabPressed,
   });
 
-  static const _animDuration = Duration(milliseconds: 380);
-  static const _animCurve = Curves.easeInOutCubic;
+  static const _animDuration = DashboardShell.navAnimDuration;
+  static const _animCurve = DashboardShell.navAnimCurve;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +198,7 @@ class _BottomNavigationButton extends StatelessWidget {
                 SizedBox(
                   height: 26,
                   child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
+                    duration: DashboardShell.navAnimDuration
                     switchInCurve: Curves.easeOut,
                     switchOutCurve: Curves.easeIn,
                     transitionBuilder: (child, animation) {

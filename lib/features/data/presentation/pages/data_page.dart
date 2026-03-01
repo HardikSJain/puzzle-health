@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../dashboard/presentation/widgets/dashboard_shell.dart';
 import '../../../../core/models/current_focus.dart';
 import '../../../../core/models/fitness_state.dart';
 import '../../../../core/models/user_fitness_profile.dart';
@@ -8,6 +7,7 @@ import '../../../../core/services/local_store_service.dart';
 import '../../../../core/services/progress_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
 import '../../../../core/widgets/glass_surface.dart';
+import '../../../dashboard/presentation/widgets/dashboard_shell.dart;
 
 /// Data Page - Read-only rolling baselines
 /// Confidence repair when users doubt the system
