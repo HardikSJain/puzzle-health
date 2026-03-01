@@ -6,8 +6,8 @@ import '../../../../core/services/progress_service.dart';
 import '../../../../core/services/weekly_cycle_service.dart';
 import '../../../../core/theme/color_theme/app_colors.dart';
 
-/// Home Page - The decision surface
-/// Answers: What am I supposed to do right now, and am I on track?
+/// Home Page - Command center
+/// Primary question: What should I do today, and how close am I?
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -46,15 +46,17 @@ class _HomePageState extends State<HomePage> {
       return const Scaffold(
         backgroundColor: AppColor.backgroundColor,
         body: SafeArea(
-          child: Center(
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
         ),
       );
     }
 
     final focus = _focus!;
     final progress = _progress!;
+    final remainingToday = (focus.targetSteps - progress.todaySteps).clamp(
+      0,
+      focus.targetSteps,
+    );
 
     return Scaffold(
       backgroundColor: AppColor.backgroundColor,
@@ -63,63 +65,20 @@ class _HomePageState extends State<HomePage> {
           onRefresh: _load,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(28, 32, 28, 48),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 8),
-
-                // The Focus - one weekly action
-                Text(
-                  '${_formatNumber(focus.targetSteps)} steps every day this week.',
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    color: AppColor.primaryTextColor,
-                    height: 1.2,
-                    letterSpacing: -0.6,
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Justification
-                Text(
-                  _shortReason(focus.reason),
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    color: AppColor.primaryTextColor.withValues(alpha: 0.5),
-                    height: 1.5,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-
-                const SizedBox(height: 36),
-
-                Text(
-                  '${progress.daysCompleted} of ${progress.totalDays} days completed',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.primaryTextColor,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-
-                const SizedBox(height: 18),
-
-                _buildWeeklyChart(progress),
-
+                _buildTodayHeader(progress, remainingToday),
                 const SizedBox(height: 24),
-
-                _buildTodayRelevance(progress),
-
-                const SizedBox(height: 32),
-
+                _buildWeeklyGoalBlock(focus),
+                const SizedBox(height: 18),
+                _buildWeeklyChart(progress),
+                const SizedBox(height: 20),
+                _buildWeekStatus(progress),
+                const SizedBox(height: 24),
                 _buildRatingPrompt(),
-
-                const SizedBox(height: 120),
+                const SizedBox(height: 64),
               ],
             ),
           ),
@@ -128,10 +87,103 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildTodayHeader(WeekProgress progress, int remainingToday) {
+    final progressRatio =
+        progress.targetSteps == 0
+            ? 0.0
+            : (progress.todaySteps / progress.targetSteps).clamp(0.0, 1.0);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      decoration: BoxDecoration(
+        color: AppColor.primaryTextColor.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Today',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColor.secondaryColor.withValues(alpha: 0.75),
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${_formatNumber(progress.todaySteps)} / ${_formatNumber(progress.targetSteps)} steps',
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w700,
+              color: AppColor.primaryTextColor,
+              letterSpacing: -0.7,
+              height: 1.15,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              minHeight: 6,
+              value: progressRatio,
+              backgroundColor: AppColor.primaryTextColor.withValues(alpha: 0.12),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                progress.isOnTrackToday
+                    ? AppColor.accentTeal
+                    : AppColor.primaryTextColor.withValues(alpha: 0.85),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            progress.isOnTrackToday
+                ? 'Today complete.'
+                : '${_formatNumber(remainingToday)} steps to go today.',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColor.primaryTextColor.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyGoalBlock(CurrentFocus focus) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Goal: ${_formatNumber(focus.targetSteps)} steps daily this week',
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: AppColor.primaryTextColor,
+            letterSpacing: -0.35,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _shortReason(focus.reason),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: AppColor.primaryTextColor.withValues(alpha: 0.62),
+            height: 1.45,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildWeeklyChart(WeekProgress progress) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       decoration: BoxDecoration(
         color: AppColor.primaryTextColor.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
@@ -140,17 +192,16 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'This week',
+            'Weekly progress',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: AppColor.secondaryColor.withValues(alpha: 0.7),
-              letterSpacing: 0.2,
             ),
           ),
           const SizedBox(height: 8),
           SizedBox(
-            height: 96,
+            height: 90,
             child: _WeeklyBars(
               dailySteps: progress.dailySteps,
               targetSteps: progress.targetSteps,
@@ -161,56 +212,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTodayRelevance(WeekProgress progress) {
-    final todayStatus = progress.isOnTrackToday
-        ? 'Today complete.'
-        : 'Today counts if you reach ${_formatNumber(progress.targetSteps)} steps.';
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 2,
-            height: 32,
-            margin: const EdgeInsets.only(top: 2),
-            decoration: BoxDecoration(
-              color: progress.isOnTrackToday
-                  ? AppColor.accentTeal.withValues(alpha: 0.4)
-                  : AppColor.primaryTextColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(1),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Today',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColor.secondaryColor.withValues(alpha: 0.4),
-                    letterSpacing: 0.3,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$todayStatus (${_formatNumber(progress.todaySteps)} steps)',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    color: AppColor.primaryTextColor.withValues(alpha: 0.7),
-                    height: 1.5,
-                    letterSpacing: -0.1,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+  Widget _buildWeekStatus(WeekProgress progress) {
+    return Text(
+      '${progress.daysCompleted}/7 days complete',
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: AppColor.primaryTextColor.withValues(alpha: 0.9),
       ),
     );
   }
@@ -220,8 +228,8 @@ class _HomePageState extends State<HomePage> {
     if (rating != null) {
       return Text(
         rating
-            ? 'You marked this goal as a good fit.'
-            : 'You marked this goal as not a fit.',
+            ? 'You marked this week\'s goal as a good fit.'
+            : 'You marked this week\'s goal as not a fit.',
         style: TextStyle(
           fontSize: 13,
           color: AppColor.secondaryColor.withValues(alpha: 0.7),
@@ -233,10 +241,10 @@ class _HomePageState extends State<HomePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Is this week\'s goal right for you?',
+          'Was this week\'s goal right for you?',
           style: TextStyle(
             fontSize: 14,
-            color: AppColor.secondaryColor.withValues(alpha: 0.8),
+            color: AppColor.secondaryColor.withValues(alpha: 0.82),
           ),
         ),
         const SizedBox(height: 8),
@@ -266,7 +274,7 @@ class _HomePageState extends State<HomePage> {
   String _shortReason(String reason) {
     final firstSentence = reason.split('.').first.trim();
     final clean = firstSentence.isEmpty ? reason.trim() : '$firstSentence.';
-    const maxLen = 88;
+    const maxLen = 84;
     if (clean.length <= maxLen) return clean;
     return '${clean.substring(0, maxLen - 1).trimRight()}…';
   }
@@ -288,8 +296,12 @@ class _WeeklyBars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    final maxValue = [...dailySteps, targetSteps].reduce((a, b) => a > b ? a : b);
-    final targetRatio = maxValue == 0 ? 0.0 : (targetSteps / maxValue).clamp(0.0, 1.0);
+    final maxValue = [
+      ...dailySteps,
+      targetSteps,
+    ].reduce((a, b) => a > b ? a : b);
+    final targetRatio =
+        maxValue == 0 ? 0.0 : (targetSteps / maxValue).clamp(0.0, 1.0);
     final todayIndex = (DateTime.now().weekday - 1).clamp(0, 6);
 
     return Column(
@@ -301,15 +313,20 @@ class _WeeklyBars extends StatelessWidget {
                 alignment: Alignment(0, 1 - (targetRatio * 2)),
                 child: Container(
                   height: 1,
-                  color: AppColor.accentTeal.withValues(alpha: 0.5),
+                  color: AppColor.accentTeal.withValues(alpha: 0.45),
                 ),
               ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: List.generate(7, (index) {
                   final value = dailySteps[index];
-                  final ratio = maxValue == 0 ? 0.0 : (value / maxValue).clamp(0.0, 1.0);
+                  final ratio =
+                      maxValue == 0
+                          ? 0.0
+                          : (value / maxValue).clamp(0.0, 1.0);
                   final isToday = index == todayIndex;
+                  final isComplete = value >= targetSteps;
+
                   return Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -318,9 +335,16 @@ class _WeeklyBars extends StatelessWidget {
                         alignment: Alignment.bottomCenter,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isToday
-                                ? AppColor.primaryTextColor.withValues(alpha: 0.9)
-                                : AppColor.primaryTextColor.withValues(alpha: 0.28),
+                            color:
+                                isComplete
+                                    ? AppColor.accentTeal.withValues(alpha: 0.75)
+                                    : isToday
+                                    ? AppColor.primaryTextColor.withValues(
+                                      alpha: 0.88,
+                                    )
+                                    : AppColor.primaryTextColor.withValues(
+                                      alpha: 0.26,
+                                    ),
                             borderRadius: BorderRadius.circular(3),
                           ),
                         ),
@@ -343,7 +367,9 @@ class _WeeklyBars extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
-                    color: AppColor.secondaryColor.withValues(alpha: index == todayIndex ? 0.9 : 0.55),
+                    color: AppColor.secondaryColor.withValues(
+                      alpha: index == todayIndex ? 0.9 : 0.55,
+                    ),
                   ),
                 ),
               ),

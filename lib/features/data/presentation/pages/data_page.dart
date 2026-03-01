@@ -94,7 +94,7 @@ class _DataPageState extends State<DataPage> {
                 const SizedBox(height: 16),
                 _buildBaselineCard(
                   'Pattern',
-                  baseline?.activityPattern ?? 'unknown',
+                  _patternLabel(baseline?.activityPattern),
                   focus != null ? _shortReason(focus.reason) : 'No active focus yet.',
                 ),
                 const SizedBox(height: 16),
@@ -209,6 +209,23 @@ class _DataPageState extends State<DataPage> {
     const maxLen = 88;
     if (clean.length <= maxLen) return clean;
     return '${clean.substring(0, maxLen - 1).trimRight()}…';
+  }
+
+  String _patternLabel(String? pattern) {
+    switch (pattern) {
+      case 'weekday_only':
+        return 'Weekday-focused';
+      case 'weekend_warrior':
+        return 'Weekend-heavy';
+      case 'sporadic':
+        return 'Inconsistent';
+      case 'consistent':
+        return 'Consistent';
+      case 'building':
+        return 'Building baseline';
+      default:
+        return 'Unknown';
+    }
   }
 }
 

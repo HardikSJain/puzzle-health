@@ -16,7 +16,7 @@ class GoalSelector {
     if (previousFocus == null || previousCompletionRate == null) {
       return CurrentFocus(
         weekStartIso: _dateKey(weekStart),
-        targetSteps: HealthAnalyzer.generateTargetSteps(baseline),
+        targetSteps: _roundedSteps(HealthAnalyzer.generateTargetSteps(baseline)),
         reason: _baselineReason(baseline),
         state: 'normal_progression',
         baselineSteps: baselineSteps,
@@ -52,7 +52,7 @@ class GoalSelector {
 
     return CurrentFocus(
       weekStartIso: _dateKey(weekStart),
-      targetSteps: target,
+      targetSteps: _roundedSteps(target),
       reason: reason,
       state: state,
       baselineSteps: baselineSteps,
@@ -70,6 +70,13 @@ class GoalSelector {
       return 'Daily movement is variable. Goal prioritizes consistency first.';
     }
     return 'Goal is calibrated from your recent baseline and recovery-friendly progression.';
+  }
+
+  static int _roundedSteps(int value) {
+    if (value < 2000) {
+      return (value / 50).round() * 50;
+    }
+    return (value / 100).round() * 100;
   }
 
   static String _dateKey(DateTime date) {
