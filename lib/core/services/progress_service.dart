@@ -26,8 +26,12 @@ class WeekProgress {
     this.dailyRuns = const [0, 0, 0, 0, 0, 0, 0],
   });
 
-  bool get isOnTrackToday =>
-      targetSteps > 0 ? todaySteps >= targetSteps : runsCompleted >= targetRunsPerWeek;
+  bool get isOnTrackToday {
+    if (targetRunsPerWeek > 0) {
+      return runsCompleted >= targetRunsPerWeek;
+    }
+    return targetSteps > 0 && todaySteps >= targetSteps;
+  }
   double get completionRate => totalDays == 0 ? 0 : daysCompleted / totalDays;
 }
 
