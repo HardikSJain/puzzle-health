@@ -100,14 +100,21 @@ class ProgressService {
       endTime: end,
     );
 
+    // For each day, check ALL workout entries — a mixed run/walk session may be
+    // stored as a single "walking" WORKOUT by Google Health, but the user may
+    // also have a separate RUNNING WORKOUT entry for the running segment.
+    // Count a day as a run day if ANY workout entry that day is a run.
     final dailyRuns = List<int>.filled(7, 0);
-    for (final point in workouts) {
-      final text = point.value.toString().toLowerCase();
-      final isRun = text.contains('run');
-      if (!isRun) continue;
+    final daysCounted = <int>{};
 
+    for (final point in workouts) {
       final idx = point.dateFrom.weekday - 1;
-      if (idx >= 0 && idx < 7) dailyRuns[idx] += 1;
+      if (idx < 0 || idx >= 7 || daysCounted.contains(idx)) continue;
+
+      if (_isRunWorkout(point)) {
+        dailyRuns[idx] += 1;
+        daysCounted.add(idx);
+      }
     }
 
     final runsCompleted = dailyRuns.fold<int>(0, (a, b) => a + b);
@@ -143,5 +150,18 @@ class ProgressService {
 
   static String _dateKey(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Determines if a WORKOUT data point represents a run using the structured
+  /// activity type first, falling back to string matching.
+  static bool _isRunWorkout(HealthDataPoint point) {
+    final value = point.value;
+    if (value is WorkoutHealthValue) {
+      final t = value.workoutActivityType;
+      return t == HealthWorkoutActivityType.RUNNING ||
+          t == HealthWorkoutActivityType.RUNNING_TREADMILL ||
+          t == HealthWorkoutActivityType.HIGH_INTENSITY_INTERVAL_TRAINING;
+    }
+    return point.value.toString().toLowerCase().contains('run');
   }
 }
