@@ -30,9 +30,13 @@ class WorkoutExtractor {
         ? (durationMinutes / (distanceMeters / 1000.0))
         : null;
 
+    // Pace-based override: if tagged as walking but pace <= 7.5 min/km,
+    // it's almost certainly a run. Brisk walking tops out ~8 min/km.
+    final resolvedType = _resolveTypeWithPace(type, pace);
+
     return WorkoutSession(
       id: '${point.uuid}_${point.dateFrom.millisecondsSinceEpoch}',
-      type: type,
+      type: resolvedType,
       start: point.dateFrom,
       end: point.dateTo,
       durationMinutes: durationMinutes,
@@ -40,6 +44,19 @@ class WorkoutExtractor {
       paceMinPerKm: pace,
       source: sourceText,
     );
+  }
+
+  /// If the activity was classified as walking but pace is under the
+  /// maximum credible walking pace (7.5 min/km), override to running.
+  static const double _maxWalkingPaceMinPerKm = 7.5;
+
+  static String _resolveTypeWithPace(String type, double? paceMinPerKm) {
+    if (type == 'walking' &&
+        paceMinPerKm != null &&
+        paceMinPerKm <= _maxWalkingPaceMinPerKm) {
+      return 'running';
+    }
+    return type;
   }
 
   static String _activityTypeFromPoint(HealthDataPoint point, String valueText) {
