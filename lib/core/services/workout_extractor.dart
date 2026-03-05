@@ -22,7 +22,9 @@ class WorkoutExtractor {
     final valueText = point.value.toString().toLowerCase();
     final sourceText = point.sourcePlatform.name;
 
-    final type = _activityTypeFromText(valueText);
+    // Prefer structured workoutActivityType over string parsing.
+    // Google Health encodes activity as a typed enum — don't rely on value text.
+    final type = _activityTypeFromPoint(point, valueText);
     final distanceMeters = _extractDistanceMeters(valueText);
     final pace = (distanceMeters != null && distanceMeters > 0)
         ? (durationMinutes / (distanceMeters / 1000.0))
@@ -40,10 +42,27 @@ class WorkoutExtractor {
     );
   }
 
-  static String _activityTypeFromText(String text) {
-    if (text.contains('run')) return 'running';
-    if (text.contains('walk')) return 'walking';
-    if (text.contains('cycl')) return 'cycling';
+  static String _activityTypeFromPoint(HealthDataPoint point, String valueText) {
+    // 1. Check structured workout type from the health package (most reliable)
+    final value = point.value;
+    if (value is WorkoutHealthValue) {
+      final activityType = value.workoutActivityType;
+      if (activityType == HealthWorkoutActivityType.RUNNING ||
+          activityType == HealthWorkoutActivityType.RUNNING_TREADMILL ||
+          activityType == HealthWorkoutActivityType.HIGH_INTENSITY_INTERVAL_TRAINING) {
+        return 'running';
+      }
+      if (activityType == HealthWorkoutActivityType.WALKING) return 'walking';
+      if (activityType == HealthWorkoutActivityType.BIKING ||
+          activityType == HealthWorkoutActivityType.HAND_CYCLING) {
+        return 'cycling';
+      }
+    }
+
+    // 2. Fallback: parse value string (less reliable, especially on Google Health)
+    if (valueText.contains('run')) return 'running';
+    if (valueText.contains('walk')) return 'walking';
+    if (valueText.contains('cycl')) return 'cycling';
     return 'other';
   }
 
