@@ -19,14 +19,8 @@ class StateClassifier {
 
     final workouts = baseline.workoutsPerWeek ?? 0;
 
-    if (baseline.stepVariance > (baseline.avgSteps * 0.75) &&
-        baseline.avgSteps > 7000) {
-      return StateClassification(
-        state: FitnessState.unstableLoad,
-        overlays: overlays,
-      );
-    }
-
+    // Runner states are checked first — a regular runner who had a high-variance
+    // week should not be demoted to unstableLoad. Running identity takes precedence.
     if (workouts >= 3.0 && baseline.avgSteps >= 6500) {
       return StateClassification(
         state: FitnessState.regularRunner,
@@ -37,6 +31,16 @@ class StateClassifier {
     if (workouts >= 1.5 && baseline.avgSteps >= 4500) {
       return StateClassification(
         state: FitnessState.emergingRunner,
+        overlays: overlays,
+      );
+    }
+
+    // Instability check applies only to non-runners. High variance on an
+    // already-active baseline signals overtraining or inconsistency.
+    if (baseline.stepVariance > (baseline.avgSteps * 0.75) &&
+        baseline.avgSteps > 7000) {
+      return StateClassification(
+        state: FitnessState.unstableLoad,
         overlays: overlays,
       );
     }
